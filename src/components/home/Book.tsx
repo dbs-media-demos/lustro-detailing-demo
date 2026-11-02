@@ -87,9 +87,11 @@ export function Book() {
           </div>
         </div>
 
-        <div className="px-[var(--gutter)] py-16 md:py-24 lg:px-16">
+        <div className="relative overflow-hidden px-[var(--gutter)] py-16 md:py-24 lg:px-16">
+          {/* the request "goes through the wash": a foam-cannon burst that rinses away to the confirmation */}
+          {sent && <div aria-hidden className="foam-burst" />}
           {sent ? (
-            <div role="status" className="anim-fade flex h-full flex-col justify-center">
+            <div role="status" className="anim-fade flex h-full flex-col justify-center" style={{ "--d": "0.7s" } as React.CSSProperties}>
               <span aria-hidden className="flex h-16 w-16 items-center justify-center rounded-full bg-volt text-ink">
                 <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.4">
                   <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />

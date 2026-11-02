@@ -349,3 +349,260 @@ details > summary::-webkit-details-marker {
     display: none;
   }
 }
+
+/* ───────────────────────── niche touches (one per section) ───────────────────────── */
+
+/* Services: a microfibre pass takes each name from hazy to gloss as the row arrives. */
+.wipe-text {
+  background: linear-gradient(100deg, var(--pearl) 0 46%, #ffffff 48%, var(--volt) 49.5%, rgba(238, 240, 242, 0.32) 52%, rgba(238, 240, 242, 0.32) 100%) 0 0 / 220% 100% no-repeat;
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: background-position 1.3s var(--ease-in-out-quart) var(--d, 0s);
+}
+.wipe-dull .wipe-text {
+  background-position: 100% 0;
+}
+
+/* Prices: an inspection light. Swirl marks show as broken rings around the light, like they do on real paint. */
+@property --mx {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+@property --my {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 30%;
+}
+.inspect {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle 9rem at var(--mx) var(--my), rgba(255, 255, 255, 0.1), transparent 70%);
+}
+.inspect-swirls {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: var(--swirl, 0);
+  background: repeating-radial-gradient(circle at var(--mx) var(--my), transparent 0 7px, rgba(255, 255, 255, 0.7) 7.5px, transparent 8.8px);
+  -webkit-mask: radial-gradient(circle 11rem at var(--mx) var(--my), #000 0%, transparent 72%), repeating-conic-gradient(from 8deg at var(--mx) var(--my), #000 0 9deg, transparent 9deg 14deg, #000 14deg 31deg, transparent 31deg 36deg);
+  -webkit-mask-composite: source-in;
+  mask: radial-gradient(circle 11rem at var(--mx) var(--my), #000 0%, transparent 72%), repeating-conic-gradient(from 8deg at var(--mx) var(--my), #000 0 9deg, transparent 9deg 14deg, #000 14deg 31deg, transparent 31deg 36deg);
+  mask-composite: intersect;
+}
+/* no pointer to hold the light: it drifts across the panel on its own */
+.inspect-drift {
+  animation: inspect-drift 9s ease-in-out infinite;
+}
+@keyframes inspect-drift {
+  0%,
+  100% {
+    --mx: 22%;
+    --my: 24%;
+  }
+  50% {
+    --mx: 78%;
+    --my: 46%;
+  }
+}
+
+/* Reviews: a polisher pad buffs the stars one by one. */
+.buff-star {
+  color: var(--volt);
+  text-shadow: 0 0 14px rgba(212, 250, 76, 0.45);
+  transition: color 0.5s ease, text-shadow 0.8s ease;
+  transition-delay: var(--d, 0s);
+}
+.buff-wait .buff-star {
+  color: rgba(238, 240, 242, 0.18);
+  text-shadow: none;
+}
+.buff-pad {
+  opacity: 0;
+}
+.buffed .buff-pad {
+  animation: buff-pass 1.7s var(--ease-in-out-quart) both;
+}
+.buff-pad > span {
+  animation: buff-spin 0.35s linear infinite;
+}
+@keyframes buff-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(-0.4em);
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(5.4em);
+  }
+}
+@keyframes buff-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* FAQ: answers open behind a drying blade (a bright line pulling the water off). */
+details[open] .blade {
+  animation: blade-in 0.8s var(--ease-out-expo) both;
+}
+details[open] .blade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 1.75rem;
+  width: 3px;
+  margin-left: -3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, var(--volt), transparent);
+  box-shadow: 0 0 12px rgba(212, 250, 76, 0.5);
+  animation: blade-line 0.8s var(--ease-out-expo) both;
+}
+@keyframes blade-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes blade-line {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+/* Book: a foam-cannon burst that rinses away to show the confirmation. */
+.foam-burst {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  /* suds: rings of different sizes on tiles that never line up, over a soft white */
+  background:
+    radial-gradient(circle at 30% 40%, transparent 0 8px, rgba(140, 156, 172, 0.42) 9px, rgba(255, 255, 255, 0.9) 10.5px, transparent 12px) 0 0 / 37px 41px,
+    radial-gradient(circle at 70% 25%, transparent 0 13px, rgba(140, 156, 172, 0.36) 14px, rgba(255, 255, 255, 0.9) 15.5px, transparent 17px) 11px 7px / 59px 53px,
+    radial-gradient(circle at 55% 70%, transparent 0 4px, rgba(140, 156, 172, 0.45) 5px, transparent 6.5px) 5px 13px / 23px 29px,
+    radial-gradient(circle at 15% 85%, transparent 0 20px, rgba(140, 156, 172, 0.28) 21px, transparent 23px) 17px 3px / 97px 89px,
+    radial-gradient(120% 90% at 50% 100%, #ffffff, #e6ebf0 70%, #d5dce3);
+  animation: foam-burst 1.5s var(--ease-in-out-quart) both;
+}
+@keyframes foam-burst {
+  0% {
+    clip-path: circle(0% at 50% 85%);
+    opacity: 1;
+    transform: none;
+  }
+  35% {
+    clip-path: circle(140% at 50% 85%);
+    opacity: 1;
+    transform: none;
+  }
+  55% {
+    clip-path: circle(140% at 50% 85%);
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    clip-path: circle(140% at 50% 85%);
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+
+/* Studio strip: dull photos come up rich one by one, like leather after conditioning. */
+.film {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: rgba(150, 140, 122, 0.35);
+  transition: opacity 1.6s ease var(--d, 0s);
+}
+.film-sat {
+  mix-blend-mode: saturation;
+  background: #807a72;
+}
+.studio-dull .film {
+  opacity: 1;
+}
+.studio-dull.studio-in .film {
+  opacity: 0;
+}
+
+/* Visit: a little drive-through. Dusty going in, gleaming coming out. */
+.drive-car {
+  animation: drive 9s linear infinite;
+}
+@keyframes drive {
+  from {
+    transform: translateX(-11rem);
+  }
+  to {
+    transform: translateX(100cqw);
+  }
+}
+.drive-drop {
+  animation: drive-drop 0.9s linear infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes drive-drop {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(34px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inspect-drift,
+  .buff-pad,
+  .drive-drop {
+    animation: none;
+    opacity: 0;
+  }
+  .drive-car {
+    animation: none;
+    transform: translateX(calc(50cqw - 4rem));
+  }
+  .foam-burst {
+    display: none;
+  }
+  .studio-dull .film {
+    opacity: 0;
+  }
+}
+
+/* Process: the paint depth gauge reads its value as the card arrives */
+.gauge-bar {
+  transition: transform 1.4s var(--ease-out-expo) 0.2s;
+}
+.gauge-wait .gauge-bar {
+  transform: scaleX(0) !important;
+}
+.gauge-wait .roll-col {
+  transform: translateY(0) !important;
+}

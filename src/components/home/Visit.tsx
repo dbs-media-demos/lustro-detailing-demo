@@ -4,6 +4,7 @@ import { useBiz } from "@/components/preview/BizContext";
 import { PreviewMap, directionsUrl } from "@/components/preview/PreviewMap";
 import { OpenBadge } from "@/components/ui/OpenBadge";
 import { Reveal } from "@/components/ui/Reveal";
+import { DriveThrough } from "./DriveThrough";
 import { DAY_NAMES, dayRange, telOf, weekFromMonday } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
 
@@ -52,6 +53,7 @@ export function Visit() {
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-line bg-carbon">{biz.preview ? <PreviewMap biz={biz} /> : <DrawnMap area={biz.area} />}</div>
         </Reveal>
       </div>
+      <DriveThrough />
     </section>
   );
 }

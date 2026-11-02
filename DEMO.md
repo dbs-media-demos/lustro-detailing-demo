@@ -23,6 +23,18 @@
 8. **Reviews**: Google-style rating and cards (sample reviews, labelled as samples; no staff names).
 9. **FAQ**, **Book** (validated request form with the next open days, success state, sends nothing), **Visit** (address, hours, open badge; drawn map on the concept, real Google map on previews).
 
+## One detailing touch per section (round 2)
+- Ticker: the separators are water beads.
+- Services: each name arrives hazy and a microfibre pass (bright edge) wipes it to gloss.
+- Prices: an inspection light over the cards (follows the mouse, drifts on its own on phones); swirl marks show as broken rings around it: plenty on Refresh, faint on Signature, none on Correct & Coat.
+- How it goes: every step card carries a paint depth gauge that reads its microns as it arrives (118 → 118 → 115 → 116 µm).
+- Inside the studio: the photos arrive dull and come up rich one by one, like conditioned leather.
+- Reviews: a small spinning polisher pad buffs the five rating stars to a shine.
+- FAQ: answers open behind a drying blade, a bright line pulling across like water off glass.
+- Book: sending the request fires a foam-cannon burst that rinses away to the confirmation.
+- Visit: a little drive-through: a dusty car rolls into the studio bay and comes out gleaming.
+- All of them use `components/ui/useArrive.ts` (before-state only below the fold, after hydration) or plain CSS; with reduced motion everything shows its finished state.
+
 ## Personalised previews
 - Shared kit from the other demos: `src/lib/biz-core.ts`, `src/lib/biz.ts`, `src/lib/preview.ts`, `src/components/preview/*`, `src/app/for/[token]`.
 - Unlike the older demos (DOM translation after load), every string goes through `t()` (`src/lib/i18n.ts`), so Serbian pages are Serbian in the server HTML. Lists with prices live per language in `src/content/offer.ts`.

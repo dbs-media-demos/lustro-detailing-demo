@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import pressure from "@/assets/photos/pressure-wash.jpg";
 import rinse from "@/assets/photos/rinse-coupe.jpg";
 import tan from "@/assets/photos/interior-tan.jpg";
@@ -11,6 +11,7 @@ import led from "@/assets/photos/headlight-led.jpg";
 import foamSuv from "@/assets/photos/foam-suv.jpg";
 import matte from "@/assets/photos/matte-studio.jpg";
 import reflection from "@/assets/photos/reflection.jpg";
+import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
 
 type Shot = { src: StaticImageData; alt: string; w: string };
@@ -34,9 +35,11 @@ function Row({ shots, reverse, dur }: { shots: Shot[]; reverse?: boolean; dur: s
     <div className="overflow-hidden">
       <div className="marquee gap-3 md:gap-4" data-reverse={reverse || undefined} style={{ "--dur": dur } as CSSProperties}>
         {[0, 1].map((copy) =>
-          shots.map((s) => (
+          shots.map((s, i) => (
             <div key={`${copy}-${s.alt}`} className={`relative aspect-[4/3] shrink-0 overflow-hidden rounded-2xl ${s.w}`} aria-hidden={copy === 1 || undefined}>
               <Image src={s.src} alt={copy ? "" : t(s.alt)} fill sizes="(min-width: 768px) 30rem, 19rem" className="object-cover" />
+              <span aria-hidden className="film film-sat" style={{ "--d": `${0.25 + i * 0.35}s` } as CSSProperties} />
+              <span aria-hidden className="film" style={{ "--d": `${0.25 + i * 0.35}s` } as CSSProperties} />
             </div>
           )),
         )}
@@ -45,11 +48,16 @@ function Row({ shots, reverse, dur }: { shots: Shot[]; reverse?: boolean; dur: s
   );
 }
 
-/** Inside the studio: two rows of photos drifting past in opposite directions. */
+/**
+ * Inside the studio: two rows of photos drifting past in opposite directions. They arrive dull
+ * and come up rich one by one, the way leather looks after it's been cleaned and fed.
+ */
 export function Studio() {
   const t = useT();
+  const ref = useRef<HTMLElement>(null);
+  useArrive(ref, "studio-dull", undefined, "0px 0px -25% 0px");
   return (
-    <section aria-label={t("Inside the studio")} className="space-y-3 overflow-hidden bg-carbon pb-28 md:space-y-4 md:pb-40">
+    <section ref={ref} aria-label={t("Inside the studio")} className="space-y-3 overflow-hidden bg-carbon pb-28 md:space-y-4 md:pb-40">
       <Row shots={ROW_A} dur="70s" />
       <Row shots={ROW_B} dur="60s" reverse />
     </section>

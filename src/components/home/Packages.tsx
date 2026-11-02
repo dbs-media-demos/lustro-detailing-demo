@@ -1,18 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties, type PointerEvent } from "react";
 import clsx from "clsx";
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
 import { Roll } from "@/components/ui/Roll";
 import { addOns, packages, sizes } from "@/content/offer";
 import { useT } from "@/lib/i18n";
+import { isTouch, prefersReducedMotion } from "@/lib/gsap";
+
+/** How many swirl marks the inspection light finds after each package (wash only → corrected). */
+const SWIRLS = [0.85, 0.32, 0];
 
 /** Three fixed-price packages; pick the car size and every price rolls to the new number. */
 export function Packages() {
   const biz = useBiz();
   const t = useT();
   const [size, setSize] = useState(0);
+  const [drift, setDrift] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pointer type is client-only
+    setDrift(isTouch() && !prefersReducedMotion());
+  }, []);
+
+  // the inspection light follows the pointer over whichever card it's on
+  const aim = (e: PointerEvent<HTMLDivElement>) => {
+    const card = (e.target as Element).closest<HTMLElement>(".group");
+    const light = card?.querySelector<HTMLElement>("[data-inspect]");
+    if (!card || !light || e.pointerType !== "mouse") return;
+    const r = card.getBoundingClientRect();
+    light.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
+    light.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
+  };
   const list = packages[biz.lang];
   const sizeNames = sizes[biz.lang];
 
@@ -47,19 +66,31 @@ export function Packages() {
         </Reveal>
       </div>
 
-      <div className="relative mt-14 grid gap-4 lg:grid-cols-3">
+      <Reveal className="relative mt-8 max-w-xl text-sm text-mist">
+        <p>{t("Under the inspection light: swirl marks stay after a wash, fade under a sealant, and are gone after correction.")}</p>
+      </Reveal>
+
+      <div className="relative mt-10 grid gap-4 lg:grid-cols-3" onPointerMove={aim}>
         {list.map((p, i) => {
           const hot = Boolean(p.tag);
           return (
-            <Reveal key={p.name} delay={i * 0.08} className={clsx("group relative flex flex-col overflow-hidden rounded-3xl border p-7 transition-transform duration-700 hover:-translate-y-1 md:p-9", hot ? "border-volt/60 bg-steel" : "border-line bg-ink/50")}>
+            <Reveal key={p.name} delay={i * 0.08} className={clsx("group relative isolate flex flex-col overflow-hidden rounded-3xl border p-7 transition-transform duration-700 hover:-translate-y-1 md:p-9", hot ? "border-volt/60 bg-steel" : "border-line bg-ink/50")}>
               {hot && <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-volt/15 blur-3xl" />}
+              <div aria-hidden className="absolute inset-0 -z-10">
+                <div data-inspect className={clsx("absolute inset-0", drift && "inspect-drift")} style={{ "--swirl": SWIRLS[i] ?? 0, animationDelay: `${-i * 3}s` } as CSSProperties}>
+                  <div className="inspect" />
+                  <div className="inspect-swirls" />
+                </div>
+              </div>
               <div className="flex items-start justify-between gap-4">
                 <h3 className="font-display text-2xl font-bold tracking-tight">{p.name}</h3>
                 {p.tag && <span className="t-label rounded-full bg-volt px-3 py-1.5 text-[0.62rem] text-ink">{p.tag}</span>}
               </div>
               <p className="t-label mt-2 text-mist">{p.time}</p>
-              <p className="mt-10 font-display text-[3.4rem] font-extrabold leading-none tracking-[-0.04em] md:text-[4rem]">
-                <Roll value={p.prices[size]} />
+              <p className="mt-10 flex items-baseline gap-1.5 font-display text-[2.6rem] font-extrabold leading-none tracking-[-0.04em] sm:text-[3.4rem] md:text-[4rem]">
+                {/* "60.000 din": the number rolls, the currency word sits smaller beside it */}
+                <Roll value={p.prices[size].replace(/\s*din$/, "")} />
+                {p.prices[size].endsWith("din") && <span className="text-lg tracking-normal text-mist">din</span>}
               </p>
               <p className="mt-2 text-sm text-mist">{sizeNames[size]}</p>
               <ul className="mt-8 space-y-3 border-t border-line pt-7 text-[0.95rem]">

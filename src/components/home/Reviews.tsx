@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef, type CSSProperties } from "react";
 import clsx from "clsx";
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
+import { useArrive } from "@/components/ui/useArrive";
 import { reviews } from "@/content/offer";
 import { initialsOf, num } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
@@ -26,9 +28,7 @@ export function Reviews() {
               <div>
                 <p className="flex items-baseline gap-2">
                   <span className="font-display text-5xl font-extrabold tracking-tight">{num(biz, biz.rating.value)}</span>
-                  <span className="text-volt" aria-hidden>
-                    ★★★★★
-                  </span>
+                  <BuffedStars />
                 </p>
                 <p className="mt-1 text-sm text-mist">{t("{count} Google reviews", { count: biz.rating.count })}</p>
               </div>
@@ -61,6 +61,24 @@ export function Reviews() {
         </ul>
       </div>
     </section>
+  );
+}
+
+/** The rating's stars, buffed to a shine one by one by a small spinning polisher pad as they arrive. */
+function BuffedStars() {
+  const ref = useRef<HTMLSpanElement>(null);
+  useArrive(ref, "buff-wait", "buffed");
+  return (
+    <span ref={ref} aria-hidden className="relative inline-flex text-xl">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} className="buff-star w-[1.1em] text-center" style={{ "--d": `${0.3 + i * 0.26}s` } as CSSProperties}>
+          ★
+        </span>
+      ))}
+      <span className="buff-pad absolute -top-[0.15em] left-0 h-[1.3em] w-[1.3em]">
+        <span className="block h-full w-full rounded-full border border-pearl/50 bg-[repeating-conic-gradient(rgba(238,240,242,0.85)_0_12deg,rgba(212,250,76,0.7)_12deg_24deg)] shadow-[0_6px_18px_rgba(0,0,0,0.6)]" />
+      </span>
+    </span>
   );
 }
 

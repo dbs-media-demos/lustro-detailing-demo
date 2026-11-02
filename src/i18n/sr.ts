@@ -77,6 +77,8 @@ export const sr: Record<string, string> = {
   "Fixed prices. No surprises at pick-up.": "Fiksne cene. Bez iznenađenja kad dođete po auto.",
   "Your car": "Vaš auto",
   "Book {name}": "Zakažite: {name}",
+  "Under the inspection light: swirl marks stay after a wash, fade under a sealant, and are gone after correction.":
+    "Pod svetlom za inspekciju: ogrebotine ostaju posle pranja, blede pod zaštitom, a posle poliranja ih nema.",
   "Add-ons": "Dodaci",
 
   // ── Ceramic rain test ──
@@ -121,6 +123,11 @@ export const sr: Record<string, string> = {
   "Sealant or ceramic coating, a final wipe-down, and a walk-round in the same light so you can see the difference for yourself.":
     "Zaštita ili keramika, završno brisanje i obilazak pod istim svetlom, da sami vidite razliku.",
   "Tight round water beads on coated blue paint": "Okrugle kapi vode na plavom laku sa keramikom",
+  "Paint depth": "Debljina laka",
+  "Measured on every panel": "Izmereno na svakom delu",
+  "Nothing taken off": "Ništa nije skinuto",
+  "3 µm of clear coat, no more": "3 µm laka, ne više",
+  "+1 µm of ceramic on top": "+1 µm keramike preko",
 
   // ── Studio strip ──
   "Inside the studio": "U studiju",
@@ -173,4 +180,7 @@ export const sr: Record<string, string> = {
   "Pick it up gleaming.": "Preuzmite ga blistavog.",
   "Get directions": "Kako do nas",
   "Map: {place}": "Mapa: {place}",
+  "A dusty car drives into the studio and comes out gleaming": "Prašnjav auto ulazi u studio i izlazi blistav",
+  "In dusty": "Ulazi prašnjav",
+  "Out gleaming": "Izlazi blistav",
 };

@@ -5,7 +5,10 @@ import { Reveal } from "@/components/ui/Reveal";
 import { faq } from "@/content/offer";
 import { useT } from "@/lib/i18n";
 
-/** Straight answers to what people ask on the phone. Native <details>, so it works without JS. */
+/**
+ * Straight answers to what people ask on the phone. Native <details>, so it works without JS; an
+ * answer opens behind a drying blade, a bright line that pulls across it like water off glass.
+ */
 export function Faq() {
   const biz = useBiz();
   const t = useT();
@@ -29,7 +32,9 @@ export function Faq() {
                     <span className="absolute left-0 top-1/2 h-px w-4 rotate-90 bg-volt transition-transform duration-500 group-open:rotate-0" />
                   </span>
                 </summary>
-                <p className="max-w-2xl pb-7 leading-relaxed text-mist">{f.a}</p>
+                <div className="blade relative">
+                  <p className="max-w-2xl pb-7 leading-relaxed text-mist">{f.a}</p>
+                </div>
               </details>
             </Reveal>
           ))}

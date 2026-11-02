@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import clsx from "clsx";
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
-import { services } from "@/content/offer";
+import { services, type Service } from "@/content/offer";
+import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
 import { isTouch, prefersReducedMotion } from "@/lib/gsap";
 
@@ -68,21 +69,7 @@ export function Services() {
       <div ref={wrap} className="relative mt-16 md:mt-24" onPointerLeave={() => setActive(null)}>
         <ul className="border-t border-line">
           {list.map((s, i) => (
-            <li key={s.name} className="border-b border-line" onPointerEnter={() => setActive(i)}>
-              <a href="#book" className="group grid grid-cols-[2.2rem_1fr_auto] items-center gap-x-4 gap-y-2 py-6 md:grid-cols-[4rem_1.1fr_1fr_8rem_6rem] md:gap-8 md:py-8" onFocus={() => setActive(i)}>
-                <span className="t-label self-start pt-1.5 text-mist md:self-center md:pt-0">{String(i + 1).padStart(2, "0")}</span>
-                <span className={clsx("font-display text-[1.45rem] font-bold leading-tight tracking-[-0.02em] transition-[transform,color] duration-500 md:text-[2.1rem]", active === i ? "md:translate-x-3 md:text-volt" : "")}>{s.name}</span>
-                <span className="relative row-span-2 h-16 w-16 overflow-hidden rounded-xl md:hidden">
-                  <Image src={s.photo} alt="" fill sizes="64px" className="object-cover" />
-                </span>
-                <span className="col-start-2 text-sm leading-relaxed text-mist md:col-start-auto md:text-[0.95rem]">{s.line}</span>
-                <span className="col-start-2 flex gap-4 text-sm md:col-start-auto md:block md:text-right">
-                  <span className="font-semibold">{s.from}</span>
-                  <span className="text-mist md:hidden">· {s.time}</span>
-                </span>
-                <span className="t-label hidden text-right text-mist md:block">{s.time}</span>
-              </a>
-            </li>
+            <ServiceRow key={s.name} s={s} i={i} active={active === i} onActive={() => setActive(i)} />
           ))}
         </ul>
 
@@ -95,5 +82,32 @@ export function Services() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** One service. Its name starts hazy and a microfibre pass (a bright edge) wipes it to gloss as the row arrives. */
+function ServiceRow({ s, i, active, onActive }: { s: Service; i: number; active: boolean; onActive: () => void }) {
+  const ref = useRef<HTMLLIElement>(null);
+  useArrive(ref, "wipe-dull");
+  return (
+    <li ref={ref} className="border-b border-line" onPointerEnter={onActive}>
+      <a href="#book" className="group grid grid-cols-[2.2rem_1fr_auto] items-center gap-x-4 gap-y-2 py-6 md:grid-cols-[4rem_1.1fr_1fr_8rem_6rem] md:gap-8 md:py-8" onFocus={onActive}>
+        <span className="t-label self-start pt-1.5 text-mist md:self-center md:pt-0">{String(i + 1).padStart(2, "0")}</span>
+        <span className={clsx("font-display text-[1.45rem] font-bold leading-tight tracking-[-0.02em] transition-transform duration-500 md:text-[2.1rem]", active && "md:translate-x-3")}>
+          <span className="wipe-text" style={{ "--d": "0.1s" } as CSSProperties}>
+            {s.name}
+          </span>
+        </span>
+        <span className="relative row-span-2 h-16 w-16 overflow-hidden rounded-xl md:hidden">
+          <Image src={s.photo} alt="" fill sizes="64px" className="object-cover" />
+        </span>
+        <span className="col-start-2 text-sm leading-relaxed text-mist md:col-start-auto md:text-[0.95rem]">{s.line}</span>
+        <span className="col-start-2 flex gap-4 text-sm md:col-start-auto md:block md:text-right">
+          <span className={clsx("font-semibold transition-colors duration-500", active && "md:text-volt")}>{s.from}</span>
+          <span className="text-mist md:hidden">· {s.time}</span>
+        </span>
+        <span className="t-label hidden text-right text-mist md:block">{s.time}</span>
+      </a>
+    </li>
   );
 }

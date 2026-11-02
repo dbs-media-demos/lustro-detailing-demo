@@ -14,7 +14,7 @@ export function Roll({ value, className }: { value: string; className?: string }
           /\d/.test(ch) ? (
             <span key={i} className="relative inline-block overflow-hidden">
               <span className="invisible">{ch}</span>
-              <span className="absolute inset-x-0 top-0 flex flex-col items-center transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ transform: `translateY(${-Number(ch) * 1.15}em)`, transitionDelay: `${i * 40}ms` }}>
+              <span className="roll-col absolute inset-x-0 top-0 flex flex-col items-center transition-transform duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ transform: `translateY(${-Number(ch) * 1.15}em)`, transitionDelay: `${i * 40}ms` }}>
                 {"0123456789".split("").map((d) => (
                   <span key={d} className="block h-[1.15em]">
                     {d}
