@@ -6,7 +6,10 @@ import { useBiz } from "@/components/preview/BizContext";
 
 const KEY = "lustro-demo-pill-dismissed";
 
-/** Small fixed pill that marks the site as a Scale by Noon concept. Dismissible for the session. */
+/**
+ * Small pill that marks the site as a Scale by Noon concept. Dismissible for the session. Fixed on
+ * desktop; on phones it sits on the hero photo and scrolls away with it, so it never covers anything.
+ */
 export function DemoPill() {
   const biz = useBiz();
   const [show, setShow] = useState(false);
@@ -22,12 +25,12 @@ export function DemoPill() {
   const sr = biz.lang === "sr";
   return (
     <div
-      className="anim-fade fixed bottom-[5.3rem] left-3 z-[66] flex items-center rounded-full border border-line-strong bg-carbon/90 pl-3.5 text-[0.72rem] text-pearl shadow-lg backdrop-blur md:bottom-4 md:left-4 md:pl-4 md:text-[0.78rem]"
+      className="anim-fade fixed bottom-[5.3rem] left-3 z-[66] flex items-center rounded-full border border-line-strong bg-carbon/90 pl-3.5 text-[0.72rem] text-pearl shadow-lg backdrop-blur md:bottom-4 md:left-4 md:pl-4 md:text-[0.78rem] phone:absolute phone:bottom-auto phone:left-[var(--gutter)] phone:top-[calc(var(--hero-photo)-5.75rem)] phone:animate-none phone:pl-3.5 phone:text-[0.72rem] phone:backdrop-blur-none"
       style={{ "--d": "2.5s" } as CSSProperties}
       data-no-translate
     >
       <a href={agencyUrl} className="inline-flex min-h-10 items-center gap-1.5 pr-1 hover:text-volt">
-        <span className="inline-block max-w-[15rem] truncate align-bottom sm:max-w-none">
+        <span className="inline-block max-w-[calc(100vw-6.75rem)] truncate align-bottom sm:max-w-none">
           {biz.preview ? (sr ? `Pregled za ${biz.shortName} · ` : `Preview for ${biz.shortName} · by `) : sr ? "Koncept sajt · " : "Concept site by "}
           <strong className="font-semibold">{agencyName}</strong> <span aria-hidden>↗</span>
         </span>

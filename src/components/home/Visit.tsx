@@ -4,6 +4,7 @@ import { useBiz } from "@/components/preview/BizContext";
 import { PreviewMap, directionsUrl } from "@/components/preview/PreviewMap";
 import { OpenBadge } from "@/components/ui/OpenBadge";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { DriveThrough } from "./DriveThrough";
 import { DAY_NAMES, dayRange, telOf, weekFromMonday } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
@@ -15,30 +16,30 @@ export function Visit() {
   // The concept studio is fictional: its directions point at the neighbourhood, never a real business
   const directions = biz.preview ? directionsUrl(biz) : `https://www.google.com/maps/search/${encodeURIComponent(biz.lang === "sr" ? "Novi Beograd" : "Design District, Dallas, TX")}`;
   return (
-    <section id="visit" aria-labelledby="visit-title" className="bg-ink px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-12 lg:grid-cols-12">
-        <Reveal className="lg:col-span-5">
-          <p className="t-label text-volt">{t("09 — Visit")}</p>
-          <h2 id="visit-title" className="t-display t-lg mt-5">
+    <section id="visit" aria-labelledby="visit-title" className="bg-ink px-[var(--gutter)] py-28 md:py-40 phone:order-10 phone:py-10">
+      <div className="grid gap-12 lg:grid-cols-12 phone:gap-4">
+        <Reveal phone className="lg:col-span-5">
+          <SectionLabel text={t("09 — Visit")} />
+          <h2 id="visit-title" className="t-display t-lg mt-5 phone:mt-2.5">
             {t("Drop it off.")} <span className="text-mist">{t("Pick it up gleaming.")}</span>
           </h2>
           {biz.address.full && (
-            <address className="mt-8 text-xl not-italic leading-snug" data-no-translate>
+            <address className="mt-8 text-xl not-italic leading-snug phone:mt-3 phone:text-base" data-no-translate>
               {biz.address.full}
             </address>
           )}
-          <OpenBadge className="mt-6 text-sm" />
+          <OpenBadge className="mt-6 text-sm phone:mt-2 phone:flex phone:min-h-5 phone:text-[0.82rem]" />
           {biz.hours && (
-            <dl className="mt-6 max-w-sm space-y-2 text-sm">
+            <dl className="mt-6 max-w-sm space-y-2 text-sm phone:mt-3 phone:space-y-1 phone:text-[0.84rem]">
               {weekFromMonday(biz.hours).map((h) => (
-                <div key={h.day} className="flex justify-between gap-4 border-b border-line pb-2">
+                <div key={h.day} className="flex justify-between gap-4 border-b border-line pb-2 phone:pb-1">
                   <dt className="text-mist">{DAY_NAMES[biz.lang][h.day]}</dt>
                   <dd className="tabular-nums">{dayRange(h, biz.lang)}</dd>
                 </div>
               ))}
             </dl>
           )}
-          <div className="mt-10 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-3 phone:mt-4 phone:gap-2">
             <a href={directions} className="btn btn-ghost" target="_blank" rel="noreferrer">
               {t("Get directions")}
             </a>
@@ -50,7 +51,7 @@ export function Visit() {
           </div>
         </Reveal>
         <Reveal className="lg:col-span-7" delay={0.1}>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-line bg-carbon">{biz.preview ? <PreviewMap biz={biz} /> : <DrawnMap area={biz.area} />}</div>
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-line bg-carbon phone:aspect-[16/9] phone:rounded-2xl">{biz.preview ? <PreviewMap biz={biz} /> : <DrawnMap area={biz.area} />}</div>
         </Reveal>
       </div>
       <DriveThrough />
@@ -83,13 +84,13 @@ function DrawnMap({ area }: { area: string }) {
         <path d="M250 -10 C 300 200 360 380 330 610" />
       </g>
       <path d="M-10 330 C 220 300 520 320 820 260" fill="none" stroke="#3a414b" strokeWidth="14" strokeLinecap="round" />
-      <circle cx="420" cy="270" r="140" fill="url(#glow)" className="motion-safe:animate-pulse" />
+      <circle cx="420" cy="270" r="140" fill="url(#glow)" className="motion-safe:animate-pulse phone:animate-none" />
       <circle cx="420" cy="270" r="9" fill="#d4fa4c" />
       <circle cx="420" cy="270" r="22" fill="none" stroke="#d4fa4c" strokeOpacity="0.5" />
       <text x="446" y="262" fill="#eef0f2" fontFamily="var(--font-syne)" fontSize="26" fontWeight="800">
         Lustro
       </text>
-      <text x="446" y="290" fill="#9aa2ab" fontFamily="var(--font-plex-mono)" fontSize="14" letterSpacing="2">
+      <text x="446" y="290" fill="#9aa2ab" fontFamily="var(--font-mono)" fontSize="14" letterSpacing="2">
         {area.toUpperCase()}
       </text>
     </svg>

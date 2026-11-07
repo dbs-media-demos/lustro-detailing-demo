@@ -2,6 +2,7 @@
 
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { faq } from "@/content/offer";
 import { useT } from "@/lib/i18n";
 
@@ -13,11 +14,11 @@ export function Faq() {
   const biz = useBiz();
   const t = useT();
   return (
-    <section id="faq" aria-labelledby="faq-title" className="bg-carbon px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-12 lg:grid-cols-12">
-        <Reveal className="lg:col-span-4">
-          <p className="t-label text-volt">{t("07 — Questions")}</p>
-          <h2 id="faq-title" className="t-display t-lg mt-5">
+    <section id="faq" aria-labelledby="faq-title" className="bg-carbon px-[var(--gutter)] py-28 md:py-40 phone:order-8 phone:bg-ink phone:py-10">
+      <div className="grid gap-12 lg:grid-cols-12 phone:gap-4">
+        <Reveal phone className="lg:col-span-4">
+          <SectionLabel text={t("07 — Questions")} />
+          <h2 id="faq-title" className="t-display t-lg mt-5 phone:mt-2.5">
             {t("Good questions.")}
           </h2>
         </Reveal>
@@ -25,7 +26,7 @@ export function Faq() {
           {faq[biz.lang].map((f, i) => (
             <Reveal key={f.q} delay={i * 0.04}>
               <details className="group border-b border-line">
-                <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-6 py-6 text-lg font-semibold md:text-xl">
+                <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-6 py-6 text-lg font-semibold md:text-xl phone:gap-4 phone:py-3 phone:text-[0.95rem] phone:leading-snug">
                   {f.q}
                   <span aria-hidden className="relative h-4 w-4 shrink-0">
                     <span className="absolute left-0 top-1/2 h-px w-4 bg-volt" />
@@ -33,7 +34,7 @@ export function Faq() {
                   </span>
                 </summary>
                 <div className="blade relative">
-                  <p className="max-w-2xl pb-7 leading-relaxed text-mist">{f.a}</p>
+                  <p className="max-w-2xl pb-7 leading-relaxed text-mist phone:pb-4 phone:text-[0.9rem] phone:leading-snug">{f.a}</p>
                 </div>
               </details>
             </Reveal>

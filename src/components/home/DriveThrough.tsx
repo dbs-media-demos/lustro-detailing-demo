@@ -33,12 +33,12 @@ function Car({ clean }: { clean?: boolean }) {
 /**
  * A little drive-through under the address: a dusty car rolls into the studio bay and comes out
  * the other side gleaming. Two copies of the same moving car, each clipped to its half, so the
- * swap happens exactly under the bay. Pure CSS; reduced motion parks the car half way in.
+ * swap happens exactly under the bay. Pure CSS; phones and reduced motion park the car half way in.
  */
 export function DriveThrough() {
   const t = useT();
   return (
-    <div className="relative mt-16 h-36 overflow-hidden rounded-3xl border border-line bg-carbon md:h-32" role="img" aria-label={t("A dusty car drives into the studio and comes out gleaming")}>
+    <div className="relative mt-16 h-36 overflow-hidden rounded-3xl border border-line bg-carbon md:h-32 phone:mt-3 phone:h-[6.5rem] phone:rounded-2xl" role="img" aria-label={t("A dusty car drives into the studio and comes out gleaming")}>
       <span aria-hidden className="absolute inset-x-0 bottom-7 h-px bg-line-strong" />
       {[false, true].map((clean) => (
         <div key={String(clean)} aria-hidden className="absolute inset-0" style={{ clipPath: clean ? "inset(0 0 0 50%)" : "inset(0 50% 0 0)" }}>

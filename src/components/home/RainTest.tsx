@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useT } from "@/lib/i18n";
-import { isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isPhone, isTouch, prefersReducedMotion } from "@/lib/motion";
 
 /*
  * The 50/50 rain test detailers do with masking tape: rain falls on a dark panel. Left of the
@@ -11,6 +12,7 @@ import { isTouch, prefersReducedMotion } from "@/lib/gsap";
  * pull into round beads, merge, and roll off once they're heavy. Drag the tape to coat more of
  * the panel; move the pointer across it to tilt the panel and steer the beads.
  * Canvas only runs while on screen (30 fps on touch); reduced motion gets one still frame.
+ * Phones don't rain all the time: a short shower as the panel arrives and while the tape is moving.
  */
 
 type Bead = { x: number; y: number; r: number; vx: number; vy: number };
@@ -25,9 +27,11 @@ export function RainTest() {
   const tilt = useRef(0);
   const [tape, setTape] = useState(0.5);
   const dragging = useRef(false);
+  const shower = useRef<() => void>(() => {});
 
   useEffect(() => {
     split.current = tape;
+    shower.current();
   }, [tape]);
 
   useEffect(() => {
@@ -36,6 +40,7 @@ export function RainTest() {
     if (!cv || !pn) return;
     const ctx = cv.getContext("2d")!;
     const touch = isTouch();
+    const phone = isPhone();
     const reduced = prefersReducedMotion();
     let W = 0;
     let H = 0;
@@ -47,6 +52,7 @@ export function RainTest() {
     let raf = 0;
     let last = 0;
     let acc = 0;
+    let until = Infinity;
 
     const resize = () => {
       const r = pn.getBoundingClientRect();
@@ -126,10 +132,11 @@ export function RainTest() {
         }
       }
       beads = beads.filter((b) => b.r > 0 && b.y - b.r < H && b.x > -20 && b.x < W + 20);
-      if (beads.length > 420) beads.splice(0, beads.length - 420);
+      const cap = phone ? 160 : 420;
+      if (beads.length > cap) beads.splice(0, beads.length - cap);
       for (const m of smears) m.a = Math.max(0, m.a - dt * 0.012);
       smears = smears.filter((m) => m.a > 0.05 && !coated(m.x));
-      if (smears.length > 320) smears.splice(0, smears.length - 320);
+      if (smears.length > cap) smears.splice(0, smears.length - cap);
       splashes = splashes.filter((p) => (p.t += dt) < 0.28);
     };
 
@@ -186,7 +193,7 @@ export function RainTest() {
 
     const loop = (now: number) => {
       raf = 0;
-      if (!visible) return;
+      if (!visible || now > until) return;
       const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
       if (!touch || now - last > 32) {
         last = now;
@@ -202,23 +209,30 @@ export function RainTest() {
       splashes = [];
     };
 
-    const ro = new ResizeObserver(() => {
-      const first = !W;
-      resize();
-      if (first) seed(reduced ? 520 : 320);
-      if (reduced) draw();
-    });
-    const io = new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting;
-      if (visible && !reduced && !raf) {
+    const start = () => {
+      if (phone) until = performance.now() + 2200;
+      if (visible && !raf) {
         last = 0;
         raf = requestAnimationFrame(loop);
       }
+    };
+    if (!reduced && phone) shower.current = start;
+
+    const ro = new ResizeObserver(() => {
+      const first = !W;
+      resize();
+      if (first) seed(reduced ? 520 : phone ? 150 : 320);
+      if (reduced || phone) draw();
+    });
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (visible && !reduced) start();
     });
     ro.observe(pn);
     io.observe(pn);
     return () => {
       cancelAnimationFrame(raf);
+      shower.current = () => {};
       ro.disconnect();
       io.disconnect();
     };
@@ -241,11 +255,11 @@ export function RainTest() {
   };
 
   return (
-    <section id="ceramic" aria-labelledby="ceramic-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-8 md:grid-cols-12 md:items-end">
-        <Reveal className="md:col-span-7">
-          <p className="t-label text-volt">{t("04 — Ceramic coating")}</p>
-          <h2 id="ceramic-title" className="t-display t-lg mt-5">
+    <section id="ceramic" aria-labelledby="ceramic-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40 phone:order-6 phone:py-10">
+      <div className="grid gap-8 md:grid-cols-12 md:items-end phone:gap-3.5">
+        <Reveal phone className="md:col-span-7">
+          <SectionLabel text={t("04 — Ceramic coating")} />
+          <h2 id="ceramic-title" className="t-display t-lg mt-5 phone:mt-2.5">
             {t("Water should never")} <span className="t-gloss">{t("sit on your paint.")}</span>
           </h2>
         </Reveal>
@@ -254,14 +268,14 @@ export function RainTest() {
         </Reveal>
       </div>
 
-      <Reveal className="mt-14">
+      <Reveal className="mt-14 phone:mt-4">
         <div
           ref={panel}
           onPointerMove={onMove}
           onPointerLeave={() => (tilt.current = 0)}
           onPointerUp={() => (dragging.current = false)}
           onPointerCancel={() => (dragging.current = false)}
-          className="relative h-[68svh] min-h-[26rem] touch-pan-y select-none overflow-hidden rounded-3xl border border-line md:h-[72vh]"
+          className="relative h-[68svh] min-h-[26rem] touch-pan-y select-none overflow-hidden rounded-3xl border border-line md:h-[72vh] phone:h-[17.5rem] phone:min-h-0 phone:rounded-2xl"
           style={{
             background:
               "linear-gradient(118deg, transparent 22%, rgba(255,255,255,0.07) 30%, transparent 38%), linear-gradient(118deg, transparent 58%, rgba(255,255,255,0.05) 63%, transparent 68%), radial-gradient(120% 90% at 25% 0%, #22324a 0%, #0d1520 50%, #05070b 100%)",
@@ -288,7 +302,7 @@ export function RainTest() {
             }}
             onPointerMove={onMove}
             onPointerUp={() => (dragging.current = false)}
-            className="absolute inset-y-0 z-10 flex w-12 -translate-x-1/2 cursor-ew-resize touch-none justify-center"
+            className="absolute inset-y-0 z-10 flex w-12 -translate-x-1/2 cursor-ew-resize touch-none justify-center phone:touch-pan-y"
             style={{ left: `${tape * 100}%` }}
           >
             <span aria-hidden className="relative h-full w-4 bg-volt/85 shadow-[0_0_30px_rgba(212,250,76,0.25)] [mask-image:repeating-linear-gradient(180deg,#000_0_92%,transparent_92%_100%)]" />
@@ -299,15 +313,15 @@ export function RainTest() {
         </div>
       </Reveal>
 
-      <dl className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-3">
+      <dl className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-3 phone:mt-3 phone:rounded-2xl">
         {[
           ["9H", "Pencil hardness: it shrugs off wash marks"],
           ["5 yrs", "Of gloss, with one check-up wash a year"],
           ["110°", "Water contact angle: why rain beads"],
         ].map(([k, v], i) => (
-          <Reveal key={k} delay={i * 0.08} className="bg-ink p-7 md:p-9">
-            <dt className="font-display text-5xl font-extrabold tracking-tight">{t(k)}</dt>
-            <dd className="mt-3 text-mist">{t(v)}</dd>
+          <Reveal key={k} delay={i * 0.08} className="bg-ink p-7 md:p-9 phone:flex phone:items-center phone:gap-3 phone:p-3.5 sm:phone:block">
+            <dt className="font-display text-5xl font-extrabold tracking-tight phone:w-24 phone:shrink-0 phone:whitespace-nowrap phone:text-[1.3rem]">{t(k)}</dt>
+            <dd className="mt-3 text-mist phone:mt-0 phone:text-[0.84rem] phone:leading-snug">{t(v)}</dd>
           </Reveal>
         ))}
       </dl>

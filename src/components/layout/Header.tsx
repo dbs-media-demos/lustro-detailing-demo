@@ -9,7 +9,7 @@ import { telOf } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
 import { NAV } from "./nav";
 
-/** Transparent over the hero, smoked glass once the page scrolls. Phones get a full-screen menu. */
+/** Transparent over the hero, smoked glass once the page scrolls (opaque on phones). Phones get a full-screen menu. */
 export function Header() {
   const biz = useBiz();
   const t = useT();
@@ -38,8 +38,8 @@ export function Header() {
   return (
     <header
       className={clsx(
-        "fixed inset-x-0 top-0 z-[70] border-b transition-[background-color,backdrop-filter,border-color] duration-500",
-        scrolled || open ? "border-line bg-ink/70 backdrop-blur-xl" : "border-transparent",
+        "fixed inset-x-0 top-0 z-[70] border-b transition-[background-color,backdrop-filter,border-color] duration-500 phone:duration-150",
+        scrolled || open ? "border-line bg-ink/70 backdrop-blur-xl phone:bg-ink phone:backdrop-blur-none" : "border-transparent",
       )}
     >
       <div className="flex h-[var(--header-h)] items-center justify-between gap-4 px-[var(--gutter)]">

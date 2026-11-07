@@ -16,7 +16,11 @@ import { useT } from "@/lib/i18n";
 
 const WORDS = ["Hand wash", "Paint correction", "Ceramic coating", "Interior detail", "Paint protection film", "Headlights", "Wheels"];
 
-/** The homepage, shared by the concept site (/, /sr) and personalised previews (/for/<token>). */
+/**
+ * The homepage, shared by the concept site (/, /sr) and personalised previews (/for/<token>).
+ * Phones read it in another order (each section's `phone:order-*`): prices by car size, reviews
+ * and how it works come straight after the hero, because that's what a project buyer checks.
+ */
 export function HomeContent() {
   return (
     <>
@@ -39,7 +43,7 @@ export function HomeContent() {
 function Ticker() {
   const t = useT();
   return (
-    <div className="overflow-hidden border-y border-line bg-ink py-5" aria-hidden>
+    <div className="overflow-hidden border-y border-line bg-ink py-5 phone:hidden" aria-hidden>
       <svg width="0" height="0" className="absolute">
         <defs>
           <radialGradient id="bead" cx="35%" cy="30%" r="75%">

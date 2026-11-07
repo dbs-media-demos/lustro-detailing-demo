@@ -4,8 +4,12 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import hood from "@/assets/photos/wipe-hood.jpg";
+import { Reveal } from "@/components/ui/Reveal";
+import { Roll } from "@/components/ui/Roll";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
-import { isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isPhone, isTouch, prefersReducedMotion, usePhone } from "@/lib/motion";
 
 /*
  * The signature moment: a gloss-black hood that rolls in dusty. As you scroll, snow foam slides
@@ -18,6 +22,7 @@ import { isTouch, prefersReducedMotion } from "@/lib/gsap";
  * while the section is on screen, at 30 fps on touch devices.
  * Reduced motion: no pinning or scrubbing; the panel sits half rinsed (a before/after) and can
  * still be wiped by hand.
+ * Phones: none of this runs. WashStacked has the same words stacked, and one CSS rinse.
  */
 
 const STEPS = ["Dust", "Foam", "Rinse", "Gloss"] as const;
@@ -168,6 +173,7 @@ export function WashScene() {
   const [step, setStep] = useState(0);
   const [still, setStill] = useState(false);
   const [wiped, setWiped] = useState(false);
+  const phone = usePhone();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- media query is client-only
@@ -178,7 +184,7 @@ export function WashScene() {
     const cv = canvas.current;
     const pn = panel.current;
     const ot = outer.current;
-    if (!cv || !pn || !ot) return;
+    if (!cv || !pn || !ot || isPhone()) return;
     const reduced = prefersReducedMotion();
     const touch = isTouch();
     const ctx = cv.getContext("2d")!;
@@ -199,6 +205,7 @@ export function WashScene() {
 
     const build = () => {
       const r = pn.getBoundingClientRect();
+      if (!r.width || !r.height) return;
       const dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.25 : 1.5);
       const w = Math.round(r.width * dpr);
       const h = Math.round(r.height * dpr);
@@ -418,11 +425,12 @@ export function WashScene() {
       cv.removeEventListener("pointerup", endWipe);
       cv.removeEventListener("pointercancel", endWipe);
     };
-  }, []);
+  }, [phone]);
 
   return (
-    <section aria-labelledby="wash-title" className="relative bg-ink">
-      <div ref={outer} className={clsx("relative", still ? "" : "h-[340vh] md:h-[380vh]")}>
+    <section aria-labelledby="wash-title" className="relative bg-ink phone:order-4">
+      <WashStacked />
+      <div ref={outer} className={clsx("relative phone:hidden", still ? "" : "h-[340vh] md:h-[380vh]")}>
         <div className={clsx("top-0 flex h-[100svh] flex-col overflow-hidden", !still && "sticky")}>
           <div ref={panel} className="group relative flex-1 overflow-hidden">
             <Image src={hood} alt={t("The gloss-black hood and windscreen of an SUV under studio lights")} fill sizes="100vw" quality={75} className="object-cover object-[50%_65%]" />
@@ -488,5 +496,55 @@ export function WashScene() {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The scene on phones: the same words, one on top of the other, nothing pinned. The dust rinses
+ * off the photo once as it arrives and the gloss meter climbs with it (transform only).
+ */
+function WashStacked() {
+  const t = useT();
+  const ref = useRef<HTMLDivElement>(null);
+  useArrive(ref, "rinse-wait", undefined, "0px 0px -25% 0px", true);
+  return (
+    <div className="hidden px-[var(--gutter)] py-10 phone:block">
+      <Reveal phone>
+        <SectionLabel text={t("01 — The wash")} />
+        <h2 className="t-display t-lg mt-2.5">
+          {t(LINES[0])} <span className="text-mist">{t(LINES[3])}</span>
+        </h2>
+      </Reveal>
+      <div ref={ref} className="mt-4">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-2xl">
+          <Image src={hood} alt={t("The gloss-black hood and windscreen of an SUV under studio lights")} fill sizes="(max-width: 767px) 100vw, 60vw" quality={60} className="object-cover object-[50%_65%]" />
+          <div aria-hidden className="rinse">
+            <div className="rinse-dust" />
+          </div>
+        </div>
+        <p className="t-lead mt-3">
+          {t(LINES[1])} {t(LINES[2])}
+        </p>
+        <div className="mt-3.5">
+          <p className="t-label flex items-baseline justify-between text-[0.66rem] text-mist">
+            <span>{t("Gloss meter")}</span>
+            <span className="text-pearl">
+              <Roll value="96" className="gloss-roll font-display text-2xl font-extrabold tracking-tight" /> GU
+            </span>
+          </p>
+          <span aria-hidden className="mt-1.5 block h-1 overflow-hidden rounded-full bg-pearl/15">
+            <span className="gauge-bar block h-full origin-left rounded-full bg-volt" style={{ transform: "scaleX(0.96)" }} />
+          </span>
+        </div>
+        <ol className="t-label mt-3 flex justify-between text-[0.64rem] text-pearl" aria-label={t("Wash steps")}>
+          {STEPS.map((sName, i) => (
+            <li key={sName} className="flex items-center gap-1.5">
+              <span className={clsx("h-1.5 w-1.5 rounded-full", i === 3 ? "bg-volt" : "bg-pearl/50")} aria-hidden />
+              {t(sName)}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
   );
 }

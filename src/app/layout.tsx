@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Manrope, Syne } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { SmoothScroll } from "@/components/layout/SmoothScroll";
 import { agencyName, noindex, site } from "@/lib/site";
 
-// Headlines use "block": a late swap would re-wrap the big display lines and shift the page.
-const display = Syne({ weight: ["700", "800"], subsets: ["latin", "latin-ext"], variable: "--font-syne", display: "block" });
-const sans = Manrope({ weight: ["400", "500", "600", "700"], subsets: ["latin", "latin-ext"], variable: "--font-manrope", display: "swap" });
+// One subset file per family (Latin + Latin Extended-A, so Serbian needs no second file). Phones
+// load these two and nothing else: the mono labels only exist above phone width (globals.css).
+const Syne = localFont({ src: "../assets/fonts/syne-var.woff2", weight: "700 800", variable: "--font-syne", display: "swap" });
+const Manrope = localFont({ src: "../assets/fonts/manrope-var.woff2", weight: "400 700", variable: "--font-manrope", display: "swap" });
 const mono = IBM_Plex_Mono({ weight: "500", subsets: ["latin", "latin-ext"], variable: "--font-plex-mono", display: "swap", preload: false });
 
 export const metadata: Metadata = {
@@ -29,7 +31,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-US" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en-US" className={`${Syne.variable} ${Manrope.variable} ${mono.variable}`}>
       <body className="min-h-dvh">
         {children}
         <SmoothScroll />

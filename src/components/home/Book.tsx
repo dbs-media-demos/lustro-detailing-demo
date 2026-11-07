@@ -7,6 +7,7 @@ import matte from "@/assets/photos/matte-studio.jpg";
 import { useBiz } from "@/components/preview/BizContext";
 import { PhoneIcon } from "@/components/layout/MobileBar";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { packages, sizes } from "@/content/offer";
 import { telOf } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
@@ -66,18 +67,18 @@ export function Book() {
   };
 
   return (
-    <section id="book" aria-labelledby="book-title" className="relative overflow-hidden bg-ink">
+    <section id="book" aria-labelledby="book-title" className="relative overflow-hidden bg-ink phone:order-9 phone:bg-carbon">
       <div className="grid lg:grid-cols-2">
-        <div className="relative min-h-[60svh] lg:min-h-full">
+        <div className="relative min-h-[60svh] lg:min-h-full phone:min-h-[14.5rem]">
           <Image src={matte} alt={t("A satin black car waiting in a bright, clean studio bay")} fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
           <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,10,0.2),rgba(7,8,10,0.85))]" />
-          <div className="absolute inset-x-0 bottom-0 p-[var(--gutter)] pb-12">
-            <p className="t-label text-volt">{t("08 — Book")}</p>
-            <h2 id="book-title" className="t-display t-lg mt-5 max-w-[12ch]">
+          <div className="absolute inset-x-0 bottom-0 p-[var(--gutter)] pb-12 phone:pb-4">
+            <SectionLabel text={t("08 — Book")} />
+            <h2 id="book-title" className="t-display t-lg mt-5 max-w-[12ch] phone:mt-2 phone:max-w-[18ch]">
               {t("Your car, the way it should look.")}
             </h2>
             {biz.phone && (
-              <a href={telOf(biz)} className="mt-8 inline-flex items-center gap-3 text-lg font-semibold hover:text-volt">
+              <a href={telOf(biz)} className="mt-8 inline-flex items-center gap-3 text-lg font-semibold hover:text-volt phone:mt-2.5 phone:gap-2 phone:text-[0.9rem]">
                 <PhoneIcon className="h-5 w-5" />
                 <span>
                   {t("Rather call?")} <span data-no-translate>{biz.phoneDisplay}</span>
@@ -87,7 +88,7 @@ export function Book() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden px-[var(--gutter)] py-16 md:py-24 lg:px-16">
+        <div className="relative overflow-hidden px-[var(--gutter)] py-16 md:py-24 lg:px-16 phone:py-7">
           {/* the request "goes through the wash": a foam-cannon burst that rinses away to the confirmation */}
           {sent && <div aria-hidden className="foam-burst" />}
           {sent ? (
@@ -105,10 +106,10 @@ export function Book() {
               </button>
             </div>
           ) : (
-            <Reveal>
-              <form noValidate onSubmit={submit} className="space-y-8">
+            <Reveal phone>
+              <form noValidate onSubmit={submit} className="space-y-8 phone:space-y-4">
                 <p className="t-lead">{t("Pick a day and we'll text you to confirm. No payment now.")}</p>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-5 sm:grid-cols-2 phone:gap-3">
                   <Field name="name" label={t("Your name")} autoComplete="name" error={errors.name} />
                   <Field name="phone" label={t("Mobile")} type="tel" autoComplete="tel" error={errors.phone} />
                   <div className="sm:col-span-2">
@@ -117,7 +118,7 @@ export function Book() {
                 </div>
 
                 <fieldset>
-                  <legend className="t-label mb-3 text-mist">{t("Size")}</legend>
+                  <legend className="t-label mb-3 text-mist phone:mb-1.5">{t("Size")}</legend>
                   <div className="flex flex-wrap gap-2">
                     {sz.map((s, i) => (
                       <Chip key={s} on={size === i} onClick={() => setSize(i)}>
@@ -128,7 +129,7 @@ export function Book() {
                 </fieldset>
 
                 <fieldset>
-                  <legend className="t-label mb-3 text-mist">{t("Package")}</legend>
+                  <legend className="t-label mb-3 text-mist phone:mb-1.5">{t("Package")}</legend>
                   <div className="flex flex-wrap gap-2">
                     {[...pk.map((p) => p.name), t("Not sure yet")].map((n) => (
                       <Chip key={n} on={pkg === n} onClick={() => setPkg(n)}>
@@ -138,9 +139,9 @@ export function Book() {
                   </div>
                 </fieldset>
 
-                <fieldset aria-describedby={errors.day ? "day-err" : undefined}>
-                  <legend className="t-label mb-3 text-mist">{t("Day")}</legend>
-                  <div className="flex min-h-11 flex-wrap gap-2">
+                <fieldset className="phone:min-w-0" aria-describedby={errors.day ? "day-err" : undefined}>
+                  <legend className="t-label mb-3 text-mist phone:mb-1.5">{t("Day")}</legend>
+                  <div className="no-scrollbar flex min-h-11 flex-wrap gap-2 phone:-mx-[var(--gutter)] phone:flex-nowrap phone:overflow-x-auto phone:px-[var(--gutter)]">
                     {days.map((d) => (
                       <Chip key={d.key} on={day === d.key} onClick={() => setDay(d.key)} name="day">
                         {d.label}
@@ -180,7 +181,7 @@ function Field({ name, label, error, type = "text", autoComplete, placeholder }:
         placeholder={placeholder}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-err` : undefined}
-        className={clsx("mt-2 block min-h-12 w-full border-b bg-transparent py-2 text-lg outline-none transition-colors placeholder:text-mist/50 focus:border-volt", error ? "border-[#ff8a7a]" : "border-line-strong")}
+        className={clsx("mt-2 block min-h-12 w-full border-b bg-transparent py-2 text-lg outline-none phone:mt-0 phone:min-h-11 phone:py-1 phone:text-base transition-colors placeholder:text-mist/50 focus:border-volt", error ? "border-[#ff8a7a]" : "border-line-strong")}
       />
       {error && (
         <span id={`${name}-err`} className="mt-2 block text-sm text-[#ff8a7a]">
@@ -193,7 +194,7 @@ function Field({ name, label, error, type = "text", autoComplete, placeholder }:
 
 function Chip({ on, onClick, children, name }: { on: boolean; onClick: () => void; children: React.ReactNode; name?: string }) {
   return (
-    <button type="button" name={name} aria-pressed={on} onClick={onClick} className={clsx("min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors duration-300", on ? "border-volt bg-volt text-ink" : "border-line-strong text-pearl hover:border-pearl")}>
+    <button type="button" name={name} aria-pressed={on} onClick={onClick} className={clsx("min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors duration-300 phone:shrink-0 phone:whitespace-nowrap phone:px-3.5 phone:text-[0.82rem]", on ? "border-volt bg-volt text-ink" : "border-line-strong text-pearl hover:border-pearl")}>
       {children}
     </button>
   );

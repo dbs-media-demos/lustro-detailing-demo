@@ -5,10 +5,11 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import clsx from "clsx";
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { services, type Service } from "@/content/offer";
 import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
-import { isTouch, prefersReducedMotion } from "@/lib/gsap";
+import { isTouch, prefersReducedMotion } from "@/lib/motion";
 
 /**
  * The menu as a list of rows. On desktop a photo of the service floats after the cursor and
@@ -53,11 +54,11 @@ export function Services() {
   }, []);
 
   return (
-    <section id="services" aria-labelledby="services-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-8 md:grid-cols-12 md:items-end">
-        <Reveal className="md:col-span-7">
-          <p className="t-label text-volt">{t("02 — Services")}</p>
-          <h2 id="services-title" className="t-display t-lg mt-5">
+    <section id="services" aria-labelledby="services-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40 phone:order-5 phone:bg-carbon phone:py-10">
+      <div className="grid gap-8 md:grid-cols-12 md:items-end phone:gap-3.5">
+        <Reveal phone className="md:col-span-7">
+          <SectionLabel text={t("02 — Services")} />
+          <h2 id="services-title" className="t-display t-lg mt-5 phone:mt-2.5">
             {t("Everything a car needs.")} <span className="text-mist">{t("Nothing it doesn't.")}</span>
           </h2>
         </Reveal>
@@ -66,14 +67,14 @@ export function Services() {
         </Reveal>
       </div>
 
-      <div ref={wrap} className="relative mt-16 md:mt-24" onPointerLeave={() => setActive(null)}>
+      <div ref={wrap} className="relative mt-16 md:mt-24 phone:mt-5" onPointerLeave={() => setActive(null)}>
         <ul className="border-t border-line">
           {list.map((s, i) => (
             <ServiceRow key={s.name} s={s} i={i} active={active === i} onActive={() => setActive(i)} />
           ))}
         </ul>
 
-        <div ref={float} aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 hidden md:block">
+        <div ref={float} aria-hidden className="pointer-events-none absolute left-0 top-0 z-10 hidden md:block phone:hidden">
           <div className={clsx("relative -ml-[9rem] -mt-[6.5rem] h-[13rem] w-[18rem] overflow-hidden rounded-2xl shadow-2xl shadow-black/60 transition-[opacity,scale] duration-500", active === null ? "scale-90 opacity-0" : "scale-100 opacity-100")}>
             {list.map((s, i) => (
               <Image key={s.name} src={s.photo} alt="" fill sizes="288px" className={clsx("object-cover transition-opacity duration-500", active === i ? "opacity-100" : "opacity-0")} />
@@ -91,22 +92,22 @@ function ServiceRow({ s, i, active, onActive }: { s: Service; i: number; active:
   useArrive(ref, "wipe-dull");
   return (
     <li ref={ref} className="border-b border-line" onPointerEnter={onActive}>
-      <a href="#book" className="group grid grid-cols-[2.2rem_1fr_auto] items-center gap-x-4 gap-y-2 py-6 md:grid-cols-[4rem_1.1fr_1fr_8rem_6rem] md:gap-8 md:py-8" onFocus={onActive}>
-        <span className="t-label self-start pt-1.5 text-mist md:self-center md:pt-0">{String(i + 1).padStart(2, "0")}</span>
-        <span className={clsx("font-display text-[1.45rem] font-bold leading-tight tracking-[-0.02em] transition-transform duration-500 md:text-[2.1rem]", active && "md:translate-x-3")}>
+      <a href="#book" className="group grid grid-cols-[2.2rem_1fr_auto] items-center gap-x-4 gap-y-2 py-6 md:grid-cols-[4rem_1.1fr_1fr_8rem_6rem] md:gap-8 md:py-8 phone:grid-cols-[1fr_3.25rem] phone:gap-x-3 phone:gap-y-1 phone:py-3" onFocus={onActive}>
+        <span className="t-label self-start pt-1.5 text-mist md:self-center md:pt-0 phone:hidden">{String(i + 1).padStart(2, "0")}</span>
+        <span className={clsx("font-display text-[1.45rem] font-bold leading-tight tracking-[-0.02em] transition-transform duration-500 md:text-[2.1rem] phone:text-[1.02rem]", active && "md:translate-x-3")}>
           <span className="wipe-text" style={{ "--d": "0.1s" } as CSSProperties}>
             {s.name}
           </span>
         </span>
-        <span className="relative row-span-2 h-16 w-16 overflow-hidden rounded-xl md:hidden">
+        <span className="relative row-span-3 h-16 w-16 overflow-hidden rounded-xl md:hidden phone:col-start-2 phone:row-start-1 phone:block phone:h-[3.25rem] phone:w-[3.25rem]">
           <Image src={s.photo} alt="" fill sizes="64px" className="object-cover" />
         </span>
-        <span className="col-start-2 text-sm leading-relaxed text-mist md:col-start-auto md:text-[0.95rem]">{s.line}</span>
-        <span className="col-start-2 flex gap-4 text-sm md:col-start-auto md:block md:text-right">
+        <span className="col-start-2 text-sm leading-relaxed text-mist md:col-start-auto md:text-[0.95rem] phone:col-start-1 phone:text-[0.82rem] phone:leading-snug">{s.line}</span>
+        <span className="col-start-2 flex gap-4 text-sm md:col-start-auto md:block md:text-right phone:col-start-1 phone:flex phone:gap-2 phone:text-left phone:text-[0.82rem]">
           <span className={clsx("font-semibold transition-colors duration-500", active && "md:text-volt")}>{s.from}</span>
-          <span className="text-mist md:hidden">· {s.time}</span>
+          <span className="text-mist md:hidden phone:inline">· {s.time}</span>
         </span>
-        <span className="t-label hidden text-right text-mist md:block">{s.time}</span>
+        <span className="t-label hidden text-right text-mist md:block phone:hidden">{s.time}</span>
       </a>
     </li>
   );

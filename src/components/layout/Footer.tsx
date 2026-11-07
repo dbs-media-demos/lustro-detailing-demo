@@ -12,16 +12,16 @@ export function Footer() {
   const t = useT();
   const year = new Date().getFullYear();
   return (
-    <footer className="relative overflow-hidden border-t border-line bg-ink px-[var(--gutter)] pb-28 pt-20 md:pb-10">
-      <div className="grid gap-12 md:grid-cols-12">
+    <footer className="relative overflow-hidden border-t border-line bg-ink px-[var(--gutter)] pb-28 pt-20 md:pb-10 phone:pb-24 phone:pt-10">
+      <div className="grid gap-12 md:grid-cols-12 phone:gap-7">
         <div className="md:col-span-5">
           <p className="flex items-center gap-3" data-no-translate>
             <LogoMark className="h-10 w-10 text-pearl" />
             <span className="font-display text-2xl font-extrabold tracking-tight">{biz.name}</span>
           </p>
-          <p className="mt-5 max-w-sm text-mist">{t("Detailing, paint correction and ceramic coating. One car at a time, under proper light.")}</p>
+          <p className="mt-5 max-w-sm text-mist phone:mt-3 phone:text-sm">{t("Detailing, paint correction and ceramic coating. One car at a time, under proper light.")}</p>
         </div>
-        <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 md:col-span-7">
+        <div className="grid grid-cols-2 gap-8 text-sm max-sm:grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-3 md:col-span-7">
           <div>
             <p className="t-label text-mist">{t("Visit")}</p>
             {biz.address.full && (
@@ -69,7 +69,7 @@ export function Footer() {
         </div>
       </div>
 
-      <p aria-hidden className="t-display pointer-events-none mt-16 select-none whitespace-nowrap text-[22vw] leading-[0.8] text-pearl/[0.04]" data-no-translate>
+      <p aria-hidden className="t-display pointer-events-none mt-16 select-none whitespace-nowrap text-[22vw] leading-[0.8] text-pearl/[0.04] phone:hidden" data-no-translate>
         {biz.shortName}
       </p>
 

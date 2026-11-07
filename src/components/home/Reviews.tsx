@@ -4,6 +4,7 @@ import { useRef, type CSSProperties } from "react";
 import clsx from "clsx";
 import { useBiz } from "@/components/preview/BizContext";
 import { Reveal } from "@/components/ui/Reveal";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useArrive } from "@/components/ui/useArrive";
 import { reviews } from "@/content/offer";
 import { initialsOf, num } from "@/lib/biz-core";
@@ -15,31 +16,31 @@ export function Reviews() {
   const t = useT();
   const list = reviews[biz.lang];
   return (
-    <section id="reviews" aria-labelledby="reviews-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-12 lg:grid-cols-12">
-        <Reveal className="lg:col-span-4">
-          <p className="t-label text-volt">{t("06 — Reviews")}</p>
-          <h2 id="reviews-title" className="t-display t-md mt-5">
+    <section id="reviews" aria-labelledby="reviews-title" className="relative bg-ink px-[var(--gutter)] py-28 md:py-40 phone:order-2 phone:py-10">
+      <div className="grid gap-12 max-lg:grid-cols-1 lg:grid-cols-12 phone:gap-4">
+        <Reveal phone className="lg:col-span-4">
+          <SectionLabel text={t("06 — Reviews")} />
+          <h2 id="reviews-title" className="t-display t-md mt-5 phone:mt-2.5">
             {t("Clean enough to photograph in the driveway.")}
           </h2>
           {biz.rating && (
-            <div className="mt-10 flex items-center gap-5 rounded-3xl border border-line p-6">
+            <div className="mt-10 flex items-center gap-5 rounded-3xl border border-line p-6 phone:mt-4 phone:gap-3.5 phone:rounded-2xl phone:p-3.5">
               <GoogleG />
               <div>
                 <p className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-extrabold tracking-tight">{num(biz, biz.rating.value)}</span>
+                  <span className="font-display text-5xl font-extrabold tracking-tight phone:text-[2rem]">{num(biz, biz.rating.value)}</span>
                   <BuffedStars />
                 </p>
-                <p className="mt-1 text-sm text-mist">{t("{count} Google reviews", { count: biz.rating.count })}</p>
+                <p className="mt-1 text-sm text-mist phone:mt-0 phone:text-[0.82rem]">{t("{count} Google reviews", { count: biz.rating.count })}</p>
               </div>
             </div>
           )}
-          <p className="t-label mt-6 text-[0.64rem] text-mist">{t("Sample reviews, for this concept site")}</p>
+          <p className="t-label mt-6 text-[0.64rem] text-mist phone:mt-2.5 phone:text-[0.6rem]">{t("Sample reviews, for this concept site")}</p>
         </Reveal>
 
-        <ul className="grid gap-4 sm:grid-cols-2 lg:col-span-8">
+        <ul className="grid gap-4 max-sm:grid-cols-1 sm:grid-cols-2 lg:col-span-8 phone:gap-2.5">
           {list.map((r, i) => (
-            <Reveal as="li" key={r.name} delay={(i % 2) * 0.08} className={clsx("flex flex-col rounded-3xl border border-line bg-carbon p-6 md:p-7", i % 2 === 1 && "sm:translate-y-10")}>
+            <Reveal as="li" key={r.name} delay={(i % 2) * 0.08} className={clsx("flex flex-col rounded-3xl border border-line bg-carbon p-6 md:p-7 phone:rounded-2xl phone:p-4", i % 2 === 1 && "sm:translate-y-10 phone:translate-y-0")}>
               <div className="flex items-center gap-3">
                 <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-steel-2 text-sm font-bold">
                   {initialsOf(r.name)}
@@ -52,10 +53,10 @@ export function Reviews() {
                 </div>
                 <GoogleG small />
               </div>
-              <p className="mt-4 text-volt" aria-label={t("5 out of 5 stars")}>
+              <p className="mt-4 text-volt phone:mt-2 phone:text-sm" aria-label={t("5 out of 5 stars")}>
                 ★★★★★
               </p>
-              <p className="mt-3 leading-relaxed text-pearl/90">{r.text}</p>
+              <p className="mt-3 leading-relaxed text-pearl/90 phone:mt-1 phone:text-[0.9rem] phone:leading-snug">{r.text}</p>
             </Reveal>
           ))}
         </ul>

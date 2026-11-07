@@ -8,6 +8,7 @@ import beads from "@/assets/photos/beads-macro.jpg";
 import { useRef } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Roll } from "@/components/ui/Roll";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
 
@@ -28,25 +29,26 @@ const STEPS = [
 
 /**
  * Four steps as cards that stack on top of each other as you scroll (CSS sticky). Each card
- * carries a paint depth gauge that reads its value as the card arrives.
+ * carries a paint depth gauge that reads its value as the card arrives. On phones nothing pins:
+ * the cards are a swipeable row with the gauges already read.
  */
 export function Process() {
   const t = useT();
   return (
-    <section aria-labelledby="process-title" className="relative bg-carbon px-[var(--gutter)] py-28 md:py-40">
-      <div className="grid gap-12 lg:grid-cols-12">
+    <section aria-labelledby="process-title" className="relative bg-carbon px-[var(--gutter)] py-28 md:py-40 phone:order-3 phone:py-10">
+      <div className="grid gap-12 lg:grid-cols-12 phone:gap-5">
         <div className="lg:col-span-4">
-          <div className="lg:sticky lg:top-[calc(var(--header-h)+3rem)]">
-            <Reveal>
-              <p className="t-label text-volt">{t("05 — How it goes")}</p>
-              <h2 id="process-title" className="t-display t-lg mt-5">
+          <div className="lg:sticky lg:top-[calc(var(--header-h)+3rem)] phone:static">
+            <Reveal phone>
+              <SectionLabel text={t("05 — How it goes")} />
+              <h2 id="process-title" className="t-display t-lg mt-5 phone:mt-2.5">
                 {t("One car at a time.")}
               </h2>
-              <p className="t-lead mt-6 max-w-sm">{t("No conveyor, no rushing. Each car gets its own bay, its own towels and the same person from start to finish.")}</p>
+              <p className="t-lead mt-6 max-w-sm phone:mt-2.5">{t("No conveyor, no rushing. Each car gets its own bay, its own towels and the same person from start to finish.")}</p>
             </Reveal>
           </div>
         </div>
-        <ol className="space-y-6 lg:col-span-8 lg:col-start-5">
+        <ol className="no-scrollbar space-y-6 lg:col-span-8 lg:col-start-5 phone:relative phone:-mx-[var(--gutter)] phone:flex phone:snap-x phone:snap-mandatory phone:gap-3 phone:space-y-0 phone:overflow-x-auto phone:scroll-px-[var(--gutter)] phone:px-[var(--gutter)]">
           {STEPS.map((s, i) => (
             <Step key={s.title} s={s} i={i} />
           ))}
@@ -62,19 +64,19 @@ function Step({ s, i }: { s: (typeof STEPS)[number]; i: number }) {
   useArrive(ref, "gauge-wait", undefined, "0px 0px -30% 0px");
   const d = DEPTH[i];
   return (
-    <li ref={ref} className="sticky" style={{ top: `calc(var(--header-h) + 1rem + ${i * 1.25}rem)` }}>
-      <article className="grid overflow-hidden rounded-3xl border border-line bg-steel shadow-[0_-20px_60px_rgba(0,0,0,0.45)] md:grid-cols-[1.1fr_1fr]">
-        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[22rem]">
-          <Image src={s.photo} alt={t(s.alt)} fill sizes="(min-width: 1024px) 34vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
+    <li ref={ref} className="sticky phone:static phone:w-[clamp(15.5rem,70%,20rem)] phone:shrink-0 phone:snap-start" style={{ top: `calc(var(--header-h) + 1rem + ${i * 1.25}rem)` }}>
+      <article className="grid overflow-hidden rounded-3xl border border-line bg-steel shadow-[0_-20px_60px_rgba(0,0,0,0.45)] md:grid-cols-[1.1fr_1fr] phone:h-full phone:grid-cols-1 phone:grid-rows-[auto_1fr] phone:rounded-2xl phone:shadow-none">
+        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[22rem] phone:aspect-[16/9] phone:min-h-0">
+          <Image src={s.photo} alt={t(s.alt)} fill sizes="(min-width: 1024px) 34vw, (min-width: 768px) 50vw, 66vw" className="object-cover" />
         </div>
-        <div className="flex flex-col p-7 md:p-9">
+        <div className="flex flex-col p-7 md:p-9 phone:p-4">
           <p className="t-label flex justify-between text-mist">
             <span className="text-volt">0{i + 1}</span>
             <span>{t(s.time)}</span>
           </p>
-          <h3 className="t-display t-sm mt-auto pt-10">{t(s.title)}</h3>
-          <p className="mt-4 text-mist">{t(s.text)}</p>
-          <div className="mt-7 border-t border-line pt-5">
+          <h3 className="t-display t-sm mt-auto pt-10 phone:mt-0 phone:pt-2.5 phone:text-[0.98rem]">{t(s.title)}</h3>
+          <p className="mt-4 text-mist phone:mt-1.5 phone:text-[0.84rem] phone:leading-snug">{t(s.text)}</p>
+          <div className="mt-7 border-t border-line pt-5 phone:mt-auto phone:pt-2.5">
             <p className="t-label flex items-baseline justify-between text-[0.64rem] text-mist">
               <span>{t("Paint depth")}</span>
               <span className="text-pearl">

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Phone mode: below 768 px or any touch screen. lib/motion.ts isPhone() is the same test. */
+@custom-variant phone {
+  @media (max-width: 767.98px), (hover: none) {
+    @slot;
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────
    Lustro Detail Studio — design tokens
    Ink · Carbon · Steel (the studio at night), Mist (quiet text),
@@ -393,22 +400,6 @@ details > summary::-webkit-details-marker {
   mask: radial-gradient(circle 11rem at var(--mx) var(--my), #000 0%, transparent 72%), repeating-conic-gradient(from 8deg at var(--mx) var(--my), #000 0 9deg, transparent 9deg 14deg, #000 14deg 31deg, transparent 31deg 36deg);
   mask-composite: intersect;
 }
-/* no pointer to hold the light: it drifts across the panel on its own */
-.inspect-drift {
-  animation: inspect-drift 9s ease-in-out infinite;
-}
-@keyframes inspect-drift {
-  0%,
-  100% {
-    --mx: 22%;
-    --my: 24%;
-  }
-  50% {
-    --mx: 78%;
-    --my: 46%;
-  }
-}
-
 /* Reviews: a polisher pad buffs the stars one by one. */
 .buff-star {
   color: var(--volt);
@@ -578,7 +569,6 @@ details[open] .blade::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .inspect-drift,
   .buff-pad,
   .drive-drop {
     animation: none;
@@ -605,4 +595,158 @@ details[open] .blade::after {
 }
 .gauge-wait .roll-col {
   transform: translateY(0) !important;
+}
+
+/* ───────────────────────── phones ─────────────────────────
+   Simple and fast: smaller type, no glass, no endless motion and nothing that repaints.
+   What moves here: tap feedback, one small rise per section (Reveal phone), the swipe rows,
+   the price picker and rain tape, and the rinse on the wash photo. Layout is `phone:` utilities. */
+
+@layer components {
+  /* in the layer so one-off sizes (text-[…]) and .rv-in still win over it */
+  @media (max-width: 767.98px), (hover: none) {
+    .t-xl {
+      font-size: clamp(1.7rem, 8vw, 3rem);
+      line-height: 1;
+    }
+    .t-lg {
+      font-size: clamp(1.45rem, 6.3vw, 2.4rem);
+      line-height: 1.02;
+    }
+    .t-md {
+      font-size: clamp(1.3rem, 5.6vw, 2rem);
+      line-height: 1.04;
+    }
+    .t-sm {
+      font-size: 1.12rem;
+    }
+    .t-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+    .t-lead {
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+    .rv {
+      transform: translateY(14px);
+      transition:
+        opacity 0.6s var(--ease-out-expo),
+        transform 0.7s var(--ease-out-expo);
+    }
+  }
+}
+
+@media (max-width: 767.98px), (hover: none) {
+  :root {
+    --header-h: 3.75rem;
+    --gutter: 1.25rem;
+    --hero-photo: clamp(14.5rem, 36svh, 22rem);
+    /* the third font file stays on desktop: labels use the body face here */
+    --font-mono: var(--font-sans);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* the first screen is there at once: no intro, no sweep */
+  #top .anim-rise,
+  #top .anim-fade,
+  #top .anim-zoom {
+    animation: none;
+  }
+  .hero-sweep,
+  .grain,
+  .pulse-dot::after {
+    display: none;
+  }
+  .t-gloss {
+    animation: none;
+    background: none;
+    color: var(--pearl);
+  }
+  .wipe-text {
+    background: none;
+    color: inherit;
+    transition: none;
+  }
+  .buff-pad {
+    display: none;
+  }
+  .drive-car {
+    animation: none;
+    transform: translateX(calc(50cqw - 4rem));
+  }
+  .drive-drop {
+    animation: none;
+    opacity: 0;
+  }
+
+  .btn-ghost {
+    background: var(--steel);
+    backdrop-filter: none;
+  }
+  .btn-volt::after {
+    display: none;
+  }
+  .btn {
+    min-height: 3rem;
+  }
+
+  /* tap feedback for everything that isn't a .btn (those scale on :active) */
+  summary:active,
+  [role="radio"]:active,
+  [aria-pressed]:active,
+  #services a:active {
+    opacity: 0.7;
+  }
+}
+
+/* Wash photo on phones: a sheet of road dust pushed off left to right. Two opposite transforms
+   keep the dust still while its edge moves, so it stays on the compositor. Finished by default. */
+.rinse {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(101%);
+  transition: transform 1.7s var(--ease-in-out-quart) 0.15s;
+}
+.rinse::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16%;
+  background: linear-gradient(90deg, rgba(246, 248, 250, 0.9), rgba(220, 234, 255, 0.28) 16%, transparent);
+}
+.rinse-dust {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-101%);
+  transition: transform 1.7s var(--ease-in-out-quart) 0.15s;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='190' fill='none' stroke='%23e2d8c4' stroke-opacity='.3'%3E%3Ccircle cx='18' cy='27' r='3'/%3E%3Ccircle cx='71' cy='12' r='1.5'/%3E%3Ccircle cx='112' cy='48' r='4.5'/%3E%3Ccircle cx='163' cy='21' r='2'/%3E%3Ccircle cx='231' cy='39' r='3.5'/%3E%3Ccircle cx='44' cy='83' r='2'/%3E%3Ccircle cx='96' cy='104' r='3'/%3E%3Ccircle cx='187' cy='92' r='5'/%3E%3Ccircle cx='246' cy='118' r='1.5'/%3E%3Ccircle cx='23' cy='146' r='4'/%3E%3Ccircle cx='139' cy='151' r='2.5'/%3E%3Ccircle cx='208' cy='171' r='3'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='300'%3E%3Cfilter id='d' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .045' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .76 0 0 0 0 .7 0 0 0 0 .6 0 0 0 .8 -.22'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E") center / cover no-repeat,
+    linear-gradient(180deg, rgba(104, 94, 78, 0.8), rgba(70, 58, 44, 0.9));
+}
+.rinse-wait .rinse,
+.rinse-wait .rinse-dust {
+  transform: none;
+  transition: none;
+}
+.rinse-wait .gauge-bar {
+  transform: scaleX(0.14) !important;
+}
+/* the meter reads 14 until the rinse */
+.rinse-wait .gloss-roll > [aria-hidden] > :nth-child(1) .roll-col {
+  transform: translateY(-1.15em) !important;
+}
+.rinse-wait .gloss-roll > [aria-hidden] > :nth-child(2) .roll-col {
+  transform: translateY(-4.6em) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rinse {
+    display: none;
+  }
 }

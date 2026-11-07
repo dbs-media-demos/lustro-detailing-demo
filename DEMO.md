@@ -9,7 +9,7 @@
 - Dev: `npm run dev -- --port 4222` (CRM launch config `demo-car-detailing`)
 - Stack: Next.js 16.3.6, React 19.2.8, Tailwind v4, GSAP (helpers), Lenis
 - Palette: #07080A ink · #0E1013 carbon · #171A1F steel · #9AA2AB mist · #EEF0F2 pearl · #D4FA4C volt (the one loud colour)
-- Fonts: Syne 700/800 (display), Manrope (body), IBM Plex Mono (labels); all with latin-ext
+- Fonts: Syne 700/800 (display), Manrope (body), both one local variable subset file with Latin + Latin Extended-A (`src/assets/fonts`, cut from the Google Fonts sources with fonttools); IBM Plex Mono (labels, above phone width only)
 - Routes: `/` (EN), `/sr` (SR), `/for/<token>` (CRM previews, EN or SR by the lead), 404, robots, sitemap, manifest, OG image
 
 ## Sections
@@ -26,7 +26,7 @@
 ## One detailing touch per section (round 2)
 - Ticker: the separators are water beads.
 - Services: each name arrives hazy and a microfibre pass (bright edge) wipes it to gloss.
-- Prices: an inspection light over the cards (follows the mouse, drifts on its own on phones); swirl marks show as broken rings around it: plenty on Refresh, faint on Signature, none on Correct & Coat.
+- Prices: an inspection light over the cards (follows the mouse, sits still on phones); swirl marks show as broken rings around it: plenty on Refresh, faint on Signature, none on Correct & Coat.
 - How it goes: every step card carries a paint depth gauge that reads its microns as it arrives (118 → 118 → 115 → 116 µm).
 - Inside the studio: the photos arrive dull and come up rich one by one, like conditioned leather.
 - Reviews: a small spinning polisher pad buffs the five rating stars to a shine.
@@ -34,6 +34,15 @@
 - Book: sending the request fires a foam-cannon burst that rinses away to the confirmation.
 - Visit: a little drive-through: a dusty car rolls into the studio bay and comes out gleaming.
 - All of them use `components/ui/useArrive.ts` (before-state only below the fold, after hydration) or plain CSS; with reduced motion everything shows its finished state.
+
+## Phones (owner's decision, 7 Nov 2026)
+Phone mode = below 768 px or any touch screen: Tailwind's `phone:` variant (`globals.css`) and `isPhone()` (`lib/motion.ts`) are the same test. At 1024 px and up nothing changed.
+- First screen: a detailer at work (`polish-black.jpg`), "Car detailing in {area}." (`Auto detailing, {area}.`), stars + count + Google, a Call button with the number on it, and prices peeking in below. The CRM tagline moves to the line under the headline. No intro animation.
+- Bottom bar: number + Book, opaque. Header opaque once scrolled. The concept pill sits on the hero photo and scrolls away with it.
+- Order on phones (`phone:order-*`, desktop's stays): hero, prices, reviews, how it goes, the wash, services, ceramic, studio, FAQ, book, visit. Section numbers ("03 —") are hidden there (`SectionLabel`).
+- Nothing pinned: the wash scene is `WashStacked` (same words, no canvas); process cards, price cards and the studio photos are swipe rows.
+- What moves: tap feedback, one fade-and-rise per section (`<Reveal phone>`), the swipe rows, the price picker and the rain tape (the rain only falls for a moment on arrival and while the tape moves), and the one niche touch: dust rinses off the wash photo as the gloss meter climbs 14 to 96 (`useArrive(..., onPhones)`, transform only). The other touches show their finished state.
+- Lenis and GSAP load on desktop only (`SmoothScroll`).
 
 ## Personalised previews
 - Shared kit from the other demos: `src/lib/biz-core.ts`, `src/lib/biz.ts`, `src/lib/preview.ts`, `src/components/preview/*`, `src/app/for/[token]`.

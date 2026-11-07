@@ -11,6 +11,7 @@ import led from "@/assets/photos/headlight-led.jpg";
 import foamSuv from "@/assets/photos/foam-suv.jpg";
 import matte from "@/assets/photos/matte-studio.jpg";
 import reflection from "@/assets/photos/reflection.jpg";
+import { Reveal } from "@/components/ui/Reveal";
 import { useArrive } from "@/components/ui/useArrive";
 import { useT } from "@/lib/i18n";
 
@@ -51,15 +52,30 @@ function Row({ shots, reverse, dur }: { shots: Shot[]; reverse?: boolean; dur: s
 /**
  * Inside the studio: two rows of photos drifting past in opposite directions. They arrive dull
  * and come up rich one by one, the way leather looks after it's been cleaned and fed.
+ * On phones it's one row you swipe yourself, with the next photo half showing.
  */
 export function Studio() {
   const t = useT();
   const ref = useRef<HTMLElement>(null);
   useArrive(ref, "studio-dull", undefined, "0px 0px -25% 0px");
   return (
-    <section ref={ref} aria-label={t("Inside the studio")} className="space-y-3 overflow-hidden bg-carbon pb-28 md:space-y-4 md:pb-40">
-      <Row shots={ROW_A} dur="70s" />
-      <Row shots={ROW_B} dur="60s" reverse />
+    <section ref={ref} aria-label={t("Inside the studio")} className="overflow-hidden bg-carbon pb-28 md:pb-40 phone:order-7 phone:py-10">
+      <div className="space-y-3 md:space-y-4 phone:hidden">
+        <Row shots={ROW_A} dur="70s" />
+        <Row shots={ROW_B} dur="60s" reverse />
+      </div>
+      <div className="hidden phone:block">
+        <Reveal phone className="px-[var(--gutter)]">
+          <p className="t-label text-volt">{t("Inside the studio")}</p>
+        </Reveal>
+        <div className="no-scrollbar mt-3.5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-px-[var(--gutter)] px-[var(--gutter)]">
+          {[...ROW_A, ...ROW_B].map((s) => (
+            <div key={s.alt} className="relative aspect-[4/3] w-[min(62vw,18rem)] shrink-0 snap-start overflow-hidden rounded-2xl">
+              <Image src={s.src} alt={t(s.alt)} fill sizes="(max-width: 767px) 62vw, 18rem" className="object-cover" />
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
