@@ -65,7 +65,7 @@ export function Packages() {
         <p>{t("Under the inspection light: swirl marks stay after a wash, fade under a sealant, and are gone after correction.")}</p>
       </Reveal>
 
-      <div className="no-scrollbar relative mt-10 grid gap-4 lg:grid-cols-3 phone:-mx-[var(--gutter)] phone:mt-5 phone:flex phone:snap-x phone:snap-mandatory phone:gap-3 phone:overflow-x-auto phone:scroll-px-[var(--gutter)] phone:px-[var(--gutter)]" onPointerMove={aim}>
+      <div className="near-cards no-scrollbar relative mt-10 grid gap-4 lg:grid-cols-3 phone:-mx-[var(--gutter)] phone:mt-5 phone:flex phone:snap-x phone:snap-mandatory phone:gap-3 phone:overflow-x-auto phone:scroll-px-[var(--gutter)] phone:px-[var(--gutter)]" onPointerMove={aim}>
         {list.map((p, i) => {
           const hot = Boolean(p.tag);
           return (

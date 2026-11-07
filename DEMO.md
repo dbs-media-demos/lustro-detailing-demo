@@ -43,6 +43,7 @@ Phone mode = below 768 px or any touch screen: Tailwind's `phone:` variant (`glo
 - Nothing pinned: the wash scene is `WashStacked` (same words, no canvas); process cards, price cards and the studio photos are swipe rows.
 - What moves: tap feedback, one fade-and-rise per section (`<Reveal phone>`), the swipe rows, the price picker and the rain tape (the rain only falls for a moment on arrival and while the tape moves), and the one niche touch: dust rinses off the wash photo as the gloss meter climbs 14 to 96 (`useArrive(..., onPhones)`, transform only). The other touches show their finished state.
 - Lenis and GSAP load on desktop only (`SmoothScroll`).
+- Loading: every block below the hero sits in `components/ui/NearScreen.tsx`. The browser skips its style and layout (`content-visibility`, `.near` in `globals.css`) and React leaves its server HTML alone until it's near the screen. Use `<Activity>` + `lazy` there, not `<Suspense>` + `use()`: Suspense moves big blocks to the end of the HTML for a script to swap back, and `use()` can stall hydration for good. Each `height` is that block's content height at 375 px without its padding, so update it when a block changes a lot. Until the fonts land, phones use plain Arial instead of next/font's `local(Arial)` fallback, which reads the font file again for every text size.
 
 ## Personalised previews
 - Shared kit from the other demos: `src/lib/biz-core.ts`, `src/lib/biz.ts`, `src/lib/preview.ts`, `src/components/preview/*`, `src/app/for/[token]`.

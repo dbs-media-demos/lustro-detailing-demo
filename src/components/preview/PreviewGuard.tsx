@@ -12,7 +12,8 @@ export function PreviewGuard() {
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
-    document.documentElement.lang = biz.lang === "sr" ? "sr-Latn" : "en-US";
+    const lang = biz.lang === "sr" ? "sr-Latn" : "en-US";
+    if (document.documentElement.lang !== lang) document.documentElement.lang = lang;
   }, [biz.lang]);
 
   useEffect(() => {

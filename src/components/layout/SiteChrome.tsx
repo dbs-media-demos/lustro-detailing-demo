@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useBiz } from "@/components/preview/BizContext";
+import { NearScreen } from "@/components/ui/NearScreen";
 import { useT } from "@/lib/i18n";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
@@ -13,7 +14,9 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   const biz = useBiz();
   const t = useT();
   useEffect(() => {
-    document.documentElement.lang = biz.lang === "sr" ? "sr-Latn" : "en-US";
+    // Only when it differs: even the same value makes the browser restyle the whole page.
+    const lang = biz.lang === "sr" ? "sr-Latn" : "en-US";
+    if (document.documentElement.lang !== lang) document.documentElement.lang = lang;
   }, [biz.lang]);
   return (
     <>
@@ -22,7 +25,9 @@ export function SiteChrome({ children }: { children: ReactNode }) {
       </a>
       <Header />
       <main id="main" className="phone:flex phone:flex-col">{children}</main>
-      <Footer />
+      <NearScreen height={556}>
+        <Footer />
+      </NearScreen>
       <MobileBar />
       <DemoPill />
     </>

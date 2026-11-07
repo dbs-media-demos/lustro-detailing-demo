@@ -12,6 +12,7 @@ import { Reviews } from "./Reviews";
 import { Faq } from "./Faq";
 import { Book } from "./Book";
 import { Visit } from "./Visit";
+import { NearScreen } from "@/components/ui/NearScreen";
 import { useT } from "@/lib/i18n";
 
 const WORDS = ["Hand wash", "Paint correction", "Ceramic coating", "Interior detail", "Paint protection film", "Headlights", "Wheels"];
@@ -20,22 +21,46 @@ const WORDS = ["Hand wash", "Paint correction", "Ceramic coating", "Interior det
  * The homepage, shared by the concept site (/, /sr) and personalised previews (/for/<token>).
  * Phones read it in another order (each section's `phone:order-*`): prices by car size, reviews
  * and how it works come straight after the hero, because that's what a project buyer checks.
+ * Everything below the hero waits there until it's near the screen (NearScreen).
  */
 export function HomeContent() {
   return (
     <>
       <Hero />
-      <Ticker />
-      <WashScene />
-      <Services />
-      <Packages />
-      <RainTest />
-      <Process />
-      <Studio />
-      <Reviews />
-      <Faq />
-      <Book />
-      <Visit />
+      {/* hidden on phones, so there it never hydrates at all */}
+      <NearScreen height={0}>
+        <Ticker />
+      </NearScreen>
+      <NearScreen height={539}>
+        <WashScene />
+      </NearScreen>
+      <NearScreen height={1155}>
+        <Services />
+      </NearScreen>
+      <NearScreen height={735}>
+        <Packages />
+      </NearScreen>
+      <NearScreen height={707}>
+        <RainTest />
+      </NearScreen>
+      <NearScreen height={548}>
+        <Process />
+      </NearScreen>
+      <NearScreen height={205}>
+        <Studio />
+      </NearScreen>
+      <NearScreen height={1292}>
+        <Reviews />
+      </NearScreen>
+      <NearScreen height={354}>
+        <Faq />
+      </NearScreen>
+      <NearScreen height={965}>
+        <Book />
+      </NearScreen>
+      <NearScreen height={738}>
+        <Visit />
+      </NearScreen>
     </>
   );
 }

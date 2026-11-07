@@ -646,6 +646,12 @@ details[open] .blade::after {
     /* the third font file stays on desktop: labels use the body face here */
     --font-mono: var(--font-sans);
   }
+  /* Until the fonts land, plain Arial: next/font's fallback is local(Arial), which reads the whole font
+     file again for every text size, and most of the first layout went on that. */
+  html:root {
+    --font-manrope: "Manrope", Arial;
+    --font-syne: "Syne", Arial;
+  }
   html {
     -webkit-tap-highlight-color: transparent;
   }
@@ -700,6 +706,40 @@ details[open] .blade::after {
   [aria-pressed]:active,
   #services a:active {
     opacity: 0.7;
+  }
+}
+
+/* Blocks below the hero on phones: no style or layout until they're near the screen (NearScreen). */
+@media (max-width: 767.98px), (hover: none) {
+  .near > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--near-h);
+  }
+}
+/* Browsers render "auto" blocks up to 1.5 screens early, and all of it would land on the first paint.
+   Sitting it out gives each its own task: the hero paints first, the prices peek in on the next frame,
+   then their cards, then the rest. The review cards are skipped one by one. */
+@media (max-width: 767.98px) {
+  .near > * {
+    animation: near-first-frame 250ms step-end;
+  }
+  .near > #packages {
+    animation-duration: 1ms;
+  }
+  .near-cards {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 410px;
+    animation: near-first-frame 120ms step-end;
+  }
+  #reviews li {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 150px;
+  }
+}
+@keyframes near-first-frame {
+  from,
+  to {
+    content-visibility: hidden;
   }
 }
 
