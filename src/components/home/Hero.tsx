@@ -12,7 +12,7 @@ import { OpenBadge } from "@/components/ui/OpenBadge";
 import { num, telOf } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
 import { isPhone, prefersReducedMotion } from "@/lib/motion";
-import { after3DGate } from "@/lib/three-gate";
+import { after3DGate, mark3DOff } from "@/lib/three-gate";
 import type { Studio } from "@/components/fx/car3d/StudioScene";
 
 const MODEL = "/models/lustro-car.glb?v=1";
@@ -24,7 +24,10 @@ const EMPTY = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAI
  * the arch down the car while the camera glides along the flank, and the cursor leans the camera
  * so the reflections slide over the paint. Until then (and for anything that fails the gate:
  * tablets, reduced motion, Save-Data, no WebGL) a still rendered from the same scene sits in the
- * server HTML, framed identically, and the canvas fades in over it.
+ * server HTML, framed identically, and the canvas fades in over it only once the scene is loaded,
+ * its shaders compiled and one frame drawn. If the first two seconds run under about 45 fps (or one
+ * frame takes over 100 ms), the canvas fades back to the still, the renderer is freed and the
+ * rest of the visit stays on stills (lib/three-gate).
  *
  * Phones: zero bytes of three.js. A detailer at work on black paint, the service and town as the
  * headline, the rating and a Call button with the number on it. After load the photo crossfades
@@ -49,6 +52,7 @@ export function Hero() {
     if (!section || !stage || !canvas) return;
     let studio: Studio | null = null;
     let disposed = false;
+    let stop3D = () => {};
     const off: (() => void)[] = [];
     const cancel = after3DGate(async () => {
       try {
@@ -57,18 +61,33 @@ export function Hero() {
         const [{ createStudio }, buf] = await Promise.all([import("@/components/fx/car3d/StudioScene"), model]);
         if (disposed) return;
         const progress = () => Math.min(1, Math.max(0, window.scrollY / Math.max(1, section.offsetHeight)));
-        studio = await createStudio(canvas, { model: buf, progress, onFirstFrame: () => setLive(true) });
+        // too slow for this machine: back to the still (it never left), renderer freed after the fade
+        const onSlow = () => {
+          mark3DOff();
+          setLive(false);
+          stop3D();
+          let s = studio;
+          studio = null;
+          const free = () => {
+            s?.dispose();
+            s = null;
+          };
+          const t = window.setTimeout(free, 800);
+          off.push(() => window.clearTimeout(t), free);
+        };
+        studio = await createStudio(canvas, { model: buf, progress, onFirstFrame: () => setLive(true), onSlow, cancelled: () => disposed });
         if (disposed) {
           studio.dispose();
           return;
         }
         const s = studio;
         const intro = window.setTimeout(() => s.intro(), 900);
-        off.push(() => window.clearTimeout(intro));
+        let on = true;
         const onScroll = () => {
           // the stage drifts at a third of the page's speed, so the car stays a little longer
+          // (the still keeps drifting after a fallback, so nothing jumps)
           stage.style.transform = `translate3d(0, ${Math.min(window.scrollY, section.offsetHeight) * 0.32}px, 0)`;
-          s.setProgress(progress());
+          if (on) s.setProgress(progress());
         };
         const onPointer = (e: PointerEvent) => s.setPointer((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1));
         const onResize = () => s.resize();
@@ -80,16 +99,22 @@ export function Hero() {
         document.addEventListener("visibilitychange", onVis);
         io.observe(section);
         onScroll();
-        off.push(() => {
-          window.removeEventListener("scroll", onScroll);
+        stop3D = () => {
+          on = false;
+          window.clearTimeout(intro);
           window.removeEventListener("pointermove", onPointer);
           window.removeEventListener("resize", onResize);
           document.removeEventListener("visibilitychange", onVis);
           io.disconnect();
+        };
+        off.push(stop3D, () => {
+          window.removeEventListener("scroll", onScroll);
           stage.style.transform = "";
         });
-      } catch {
-        // no WebGL or no model after all: the still stays
+      } catch (e) {
+        // no real graphics chip, no WebGL or no model after all: the still stays (for the visit,
+        // unless it was only the model or the page going away)
+        if (!disposed && e instanceof Error && /WebGL|context/i.test(e.message)) mark3DOff();
       }
     });
     return () => {

@@ -55,6 +55,23 @@ const ARCH_IN = 4.6; // ahead of the nose
 const INTRO_S = 3.2;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+// the watch after the canvas appears: under 45 fps on average, one frame over 100 ms, or over 3 ms
+// of the scene's own work per frame, means a weak machine
+const WATCH_MS = 2000;
+const WARM_FRAMES = 3;
+const MIN_FPS = 45;
+const MAX_FRAME_MS = 100;
+const MAX_COST_MS = 3;
+const SOFTWARE_GL = /swiftshader|llvmpipe|softpipe|software|basic render|mesa offscreen/i;
+
+/** Lets the browser draw a frame and handle input between the heavy setup steps. */
+const breathe = () =>
+  new Promise<void>((r) => {
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(() => r(), { timeout: 120 });
+    else window.setTimeout(r, 16);
+  });
+let meshoptWorkers = false;
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOut = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 
@@ -139,8 +156,24 @@ function softbox(w: number, h: number, intensity: number, edge = 0.18) {
   );
 }
 
+/**
+ * Compiles a bake's shaders off the main thread (KHR_parallel_shader_compile). They are compiled as
+ * for a render target, which is where the bake draws, so the bake finds them ready.
+ */
+async function precompile(renderer: THREE.WebGLRenderer, scene: THREE.Object3D, camera: THREE.Camera) {
+  const rt = new THREE.WebGLRenderTarget(1, 1);
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(rt);
+  const ready = renderer.compileAsync(scene, camera);
+  renderer.setRenderTarget(prev);
+  await ready;
+  rt.dispose();
+}
+
+type PmremInternals = { _ggxMaterial: THREE.ShaderMaterial | null; _integrationMaterial: THREE.ShaderMaterial | null; _boxMesh: THREE.Mesh };
+
 /** The room as the paint sees it: a big overhead softbox, two long side strips, dark walls and floor. */
-function studioEnvironment(renderer: THREE.WebGLRenderer) {
+async function studioEnvironment(renderer: THREE.WebGLRenderer) {
   const env = new THREE.Scene();
   env.background = new THREE.Color("#050607");
   const room = new THREE.Mesh(new THREE.BoxGeometry(18, 7, 22), new THREE.MeshBasicMaterial({ color: "#121418", side: THREE.BackSide }));
@@ -169,7 +202,21 @@ function studioEnvironment(renderer: THREE.WebGLRenderer) {
     env.add(k);
   }
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const rt = pmrem.fromScene(env, 0, 0.1, 40, { size: 512, position: new THREE.Vector3(0, 0.9, 0) });
+  const bake = () => pmrem.fromScene(env, 0, 0.1, 40, { size: 512, position: new THREE.Vector3(0, 0.9, 0) });
+  // PMREM makes its filter shaders on first use: a dry run with drawing switched off creates them,
+  // then they compile in the background with the room's own, and the real bake only draws
+  const draw = renderer.render;
+  renderer.render = () => {};
+  bake().dispose();
+  renderer.render = draw;
+  const pm = pmrem as unknown as PmremInternals;
+  const filters = new THREE.Group();
+  for (const m of [pm._ggxMaterial, pm._integrationMaterial]) if (m) filters.add(new THREE.Mesh(pm._boxMesh.geometry, m));
+  env.add(filters);
+  await precompile(renderer, env, new THREE.PerspectiveCamera(90, 1, 0.1, 40));
+  env.remove(filters);
+  await breathe();
+  const rt = bake();
   pmrem.dispose();
   env.traverse((o) => {
     if (o instanceof THREE.Mesh) {
@@ -182,7 +229,7 @@ function studioEnvironment(renderer: THREE.WebGLRenderer) {
 
 
 /** Soft contact shadow, baked once: depth from below, blurred into a tight and a wide layer. */
-function contactShadows(renderer: THREE.WebGLRenderer, car: THREE.Object3D, size: THREE.Vector3) {
+async function contactShadows(renderer: THREE.WebGLRenderer, car: THREE.Object3D, size: THREE.Vector3) {
   const W = size.x + 1.6;
   const D = size.z + 1.6;
   const H = 1.4;
@@ -204,12 +251,6 @@ function contactShadows(renderer: THREE.WebGLRenderer, car: THREE.Object3D, size
   holder.add(car.clone());
   shadowScene.add(holder);
   shadowScene.overrideMaterial = depth;
-  const prevColor = renderer.getClearColor(new THREE.Color());
-  const prevAlpha = renderer.getClearAlpha();
-  renderer.setClearColor(0x000000, 0);
-  renderer.setRenderTarget(rtA);
-  renderer.render(shadowScene, cam);
-
   const blur = new THREE.ShaderMaterial({
     uniforms: { tMap: { value: null }, uDir: { value: new THREE.Vector2() } },
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
@@ -225,6 +266,18 @@ function contactShadows(renderer: THREE.WebGLRenderer, car: THREE.Object3D, size
   const quadScene = new THREE.Scene();
   quadScene.add(quad);
   const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  // compile() skips overrideMaterial, so the depth shader goes in on a stand-in quad of its own
+  const depthProbe = new THREE.Mesh(quad.geometry, depth);
+  quadScene.add(depthProbe);
+  await precompile(renderer, quadScene, ortho);
+  quadScene.remove(depthProbe);
+  await breathe();
+
+  const prevColor = renderer.getClearColor(new THREE.Color());
+  const prevAlpha = renderer.getClearAlpha();
+  renderer.setClearColor(0x000000, 0);
+  renderer.setRenderTarget(rtA);
+  renderer.render(shadowScene, cam);
   const pass = (from: THREE.WebGLRenderTarget, to: THREE.WebGLRenderTarget, px: number) => {
     blur.uniforms.tMap.value = from.texture;
     blur.uniforms.uDir.value.set(px / res, 0);
@@ -268,20 +321,45 @@ function contactShadows(renderer: THREE.WebGLRenderer, car: THREE.Object3D, size
 
 export async function createStudio(
   canvas: HTMLCanvasElement,
-  opts: { model: string | ArrayBuffer; frame?: Frame; progress?: () => number; onFirstFrame?: () => void },
+  opts: {
+    model: string | ArrayBuffer;
+    frame?: Frame;
+    progress?: () => number;
+    onFirstFrame?: () => void;
+    /** The first seconds ran too slowly (see WATCH_MS): the caller fades back to the still. */
+    onSlow?: () => void;
+    /** Stop early if the caller no longer wants the scene. */
+    cancelled?: () => boolean;
+  },
 ): Promise<Studio> {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+  // a real graphics chip or nothing: software rendering keeps the still
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance", failIfMajorPerformanceCaveat: true });
+  const gl = renderer.getContext();
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  if (SOFTWARE_GL.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)))) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+    throw new Error("software WebGL");
+  }
   renderer.debug.checkShaderErrors = false;
+  const abort = () => {
+    if (!opts.cancelled?.()) return;
+    renderer.dispose();
+    renderer.forceContextLoss();
+    throw new Error("cancelled");
+  };
   renderer.setClearColor(INK, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
+  await breathe();
+  abort();
 
   const scene = new THREE.Scene();
   scene.background = INK;
   scene.fog = new THREE.Fog(CYC_LOW, 10, 24);
   // each material gets the room itself (scene.environment would override envMapIntensity)
-  const envRT = studioEnvironment(renderer);
+  const envRT = await studioEnvironment(renderer);
   const envMap = envRT.texture;
 
   // the cove: an infinity wall that glows faintly just above the floor line, black overhead
@@ -316,12 +394,22 @@ export async function createStudio(
   const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 64).rotateX(-Math.PI / 2), floorMat);
   scene.add(floor);
 
-  // the car
+  await breathe();
+  abort();
+
+  // the car (the meshopt streams decode in workers, off the main thread)
   const loader = new GLTFLoader();
+  if (!meshoptWorkers) {
+    const decoder = MeshoptDecoder as typeof MeshoptDecoder & { useWorkers: (n: number) => void };
+    decoder.useWorkers(2);
+    meshoptWorkers = true;
+  }
   loader.setMeshoptDecoder(MeshoptDecoder);
   // the caller may have fetched the file already, alongside this chunk
   const gltf = typeof opts.model === "string" ? await loader.loadAsync(opts.model) : await loader.parseAsync(opts.model, "");
   const car = gltf.scene;
+  await breathe();
+  abort();
 
   const paint = withArch(
     new THREE.MeshPhysicalMaterial({ color: "#0b0c0e", metalness: 0.6, roughness: 0.34, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.25 }),
@@ -414,7 +502,9 @@ export async function createStudio(
   pool.position.y = 0.001;
   scene.add(pool);
 
-  const shadows = contactShadows(renderer, carRoot, size);
+  await breathe();
+  abort();
+  const shadows = await contactShadows(renderer, carRoot, size);
   scene.add(shadows.group);
 
   // ── state ──
@@ -429,6 +519,8 @@ export async function createStudio(
   let last = 0;
   let first = true;
   let disposed = false;
+  // the frame watch: starts with the first visible frame, paused while off screen or hidden
+  const watch = { on: !!opts.onSlow, t0: 0, n: 0, worst: 0, cost: 0 };
 
   const setArch = (z: number) => {
     archWorld[0].set(-ARCH_W, 0.25, z);
@@ -461,13 +553,16 @@ export async function createStudio(
     camera.updateProjectionMatrix();
   };
 
-  const resize = () => {
+  const size2D = () => {
     const w = canvas.clientWidth || 1;
     const h = canvas.clientHeight || 1;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.6, Math.sqrt(4_200_000 / (w * h)));
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(4_200_000 / (w * h)));
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
     applyFrame(w, h);
+  };
+  const resize = () => {
+    size2D();
     request();
   };
 
@@ -486,11 +581,38 @@ export async function createStudio(
   };
 
   const step = (now: number) => {
+    const now0 = performance.now();
     raf = 0;
     if (disposed) return;
-    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+    const ms = last ? now - last : 0;
+    const dt = Math.min(0.05, last ? ms / 1000 : 0.016);
     last = now;
     let busy = false;
+
+    // keep drawing through the watch (the same picture when nothing moves), so every frame counts
+    if (watch.on) busy = true;
+    if (watch.on && ms) {
+      watch.n++;
+      if (watch.n === WARM_FRAMES) watch.t0 = now;
+      if (watch.n > WARM_FRAMES) {
+        watch.worst = Math.max(watch.worst, ms);
+        const span = now - watch.t0;
+        const fps = ((watch.n - WARM_FRAMES) * 1000) / Math.max(1, span);
+        // the scene's own main-thread time per frame: on a slow CPU it leaves the page no room,
+        // even where the screen refresh hides it (about 1 ms on a desktop, 8 ms at 4x CPU slowdown)
+        const cost = watch.cost / Math.max(1, watch.n - WARM_FRAMES - 1);
+        if (watch.worst > MAX_FRAME_MS || (span >= WATCH_MS && (fps < MIN_FPS || cost > MAX_COST_MS))) {
+          watch.on = false;
+          performance.mark("3d:slow", { detail: { fps, cost, worst: watch.worst } });
+          opts.onSlow?.();
+          return;
+        }
+        if (span >= WATCH_MS) {
+          watch.on = false;
+          performance.mark("3d:watch-ok", { detail: { fps, cost, worst: watch.worst } });
+        }
+      }
+    }
 
     progress = opts.progress?.() ?? progress;
     const dp = progress - shown;
@@ -520,8 +642,10 @@ export async function createStudio(
     setArch(archZ);
     placeCamera(shown, "live");
     render();
+    if (watch.on && watch.n > WARM_FRAMES) watch.cost += performance.now() - now0;
     if (first) {
       first = false;
+      performance.mark("3d:first-frame");
       opts.onFirstFrame?.();
     }
     if (busy && visible) request();
@@ -535,7 +659,33 @@ export async function createStudio(
   // first frame: finished state (matches the still), lamps on
   setLamps(1);
   setArch(ARCH_Z0);
-  resize();
+  size2D();
+  placeCamera(shown, "live");
+  await breathe();
+  abort();
+  // compile every shader off the main thread (KHR_parallel_shader_compile), then upload the
+  // textures a few at a time and draw one frame while the canvas is still invisible: nothing is
+  // left to compile or upload when the canvas fades in or the visitor scrolls
+  await renderer.compileAsync(scene, camera);
+  abort();
+  const textures = new Set<THREE.Texture>();
+  scene.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) for (const v of Object.values(m)) if (v instanceof THREE.Texture) textures.add(v);
+  });
+  let slice = performance.now();
+  for (const t of textures) {
+    renderer.initTexture(t);
+    if (performance.now() - slice > 8) {
+      await breathe();
+      slice = performance.now();
+    }
+  }
+  abort();
+  render();
+  await nextFrame();
+  abort();
+  request();
 
   return {
     setProgress: (p) => {
@@ -548,13 +698,16 @@ export async function createStudio(
       request();
     },
     setVisible: (v) => {
+      if (v === visible) return void (v && request());
       visible = v;
       if (v) request();
-      else if (raf) {
-        cancelAnimationFrame(raf);
+      else {
+        if (raf) cancelAnimationFrame(raf);
         raf = 0;
         last = 0;
       }
+      // a watch interrupted by scrolling away or switching tabs starts over when it comes back
+      if (watch.on) watch.n = watch.worst = watch.cost = 0;
     },
     resize,
     intro: () => {
@@ -587,6 +740,7 @@ export async function createStudio(
         }
       });
       renderer.dispose();
+      renderer.forceContextLoss();
     },
   };
 }
