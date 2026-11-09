@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Desktop screens short enough that the hero needs tighter spacing (laptops at 720-800 px tall). */
+@custom-variant short {
+  @media (min-width: 768px) and (hover: hover) and (max-height: 820px) {
+    @slot;
+  }
+}
+
 /* Phone mode: below 768 px or any touch screen. lib/motion.ts isPhone() is the same test. */
 @custom-variant phone {
   @media (max-width: 767.98px), (hover: none) {
@@ -355,6 +362,27 @@ details > summary::-webkit-details-marker {
   .hero-sweep {
     display: none;
   }
+}
+
+/* hero still: a narrow hero crops further right, so the car keeps its tail (StudioScene does the same) */
+.hero-stage {
+  container: hero-stage / size;
+}
+@media (min-width: 768px) and (hover: hover) {
+  @container hero-stage (max-aspect-ratio: 3 / 2) {
+    .hero-still {
+      object-position: 82% 50%;
+    }
+  }
+}
+
+/* phones: the detailer photo gives way once to the still of the 3D car (Hero, after load) */
+.hero-xfade {
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-in-out-quart);
+}
+.hero-xfade.is-in {
+  opacity: 1;
 }
 
 /* ───────────────────────── niche touches (one per section) ───────────────────────── */

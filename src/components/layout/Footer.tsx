@@ -77,6 +77,17 @@ export function Footer() {
         <p data-no-translate>
           © {year} {biz.name}
         </p>
+        {/* the hero car's licence (CC BY 4.0) asks for this line */}
+        <p>
+          {t("3D car:")}{" "}
+          <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept" className="hover:text-pearl" rel="noopener" target="_blank" data-no-translate>
+            Car Concept, Khronos Group
+          </a>
+          ,{" "}
+          <a href="https://creativecommons.org/licenses/by/4.0/" className="hover:text-pearl" rel="noopener license" target="_blank" data-no-translate>
+            CC BY 4.0
+          </a>
+        </p>
         <p>
           {t("Design & development:")}{" "}
           <a href={agencyUrl} className="text-pearl hover:text-volt" data-no-translate>

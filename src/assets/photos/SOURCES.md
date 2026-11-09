@@ -29,3 +29,11 @@ Each one is re-graded by `scripts/grade.mjs` into `src/assets/photos/`.
 | garage-front.jpg | https://unsplash.com/photos/a-black-car-is-parked-in-a-garage-afnQQfeMjUs | @patresinger |
 | mirror-gloss.jpg | https://unsplash.com/photos/black-car-side-mirror-oklaYq-qKtk | @evgeny_karp97 |
 | rinse-coupe.jpg | https://unsplash.com/photos/man-in-black-t-shirt-and-black-pants-doing-water-splash-on-black-coupe-during-daytime-eP8h7YVhFHk | @bradstarkey |
+
+## Rendered, not photographed
+
+| File | Source |
+|---|---|
+| studio-car.jpg, studio-car-phone.jpg | Rendered from the hero's 3D scene by `scripts/car-stills.mjs`. Car: "Car Concept", Khronos Group glTF Sample Assets, CC BY 4.0 (https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept), after "Free Concept Car 004" by Unity Fan (CC0). Credited in the footer. |
+
+sedan-dark.jpg is no longer used (the 3D studio replaced it as the desktop hero).

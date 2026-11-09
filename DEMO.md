@@ -7,13 +7,13 @@
 - Repo: local only
 - Folder: DBS Media Portfolio/Demo Websites/car-detailing
 - Dev: `npm run dev -- --port 4222` (CRM launch config `demo-car-detailing`)
-- Stack: Next.js 16.3.6, React 19.2.8, Tailwind v4, GSAP (helpers), Lenis
+- Stack: Next.js 16.3.6, React 19.2.8, Tailwind v4, GSAP (helpers), Lenis, three.js 0.187 (desktop hero only)
 - Palette: #07080A ink · #0E1013 carbon · #171A1F steel · #9AA2AB mist · #EEF0F2 pearl · #D4FA4C volt (the one loud colour)
 - Fonts: Syne 700/800 (display), Manrope (body), both one local variable subset file with Latin + Latin Extended-A (`src/assets/fonts`, cut from the Google Fonts sources with fonttools); IBM Plex Mono (labels, above phone width only)
 - Routes: `/` (EN), `/sr` (SR), `/for/<token>` (CRM previews, EN or SR by the lead), 404, robots, sitemap, manifest, OG image
 
 ## Sections
-1. **Hero**: a black car in a dark studio; a band of light keeps sweeping over the paint and through the "left the showroom." headline. Live open badge, rating.
+1. **Hero** (3D, desktop): a real-time gloss-black car in a dark detail studio (three.js). On arrival an inspection light arch passes over the car once and the lamps blink; scrolling runs the arch from the front wheels to past the tail while the camera glides down the flank, and the cursor leans the camera so the reflections slide over the paint. Live open badge, rating, Book + the phone number.
 2. **The wash** (signature): a pinned scroll scene over a dusty hood. Snow foam slides down over the dirt, a rinse sheet sweeps it off left to right, water beads roll away and a highlight crosses the clean paint while a gloss meter climbs 14 → 96 GU. Before the rinse you can wipe the dust off with the cursor (or a sideways swipe on phones).
 3. **Services**: eight rows with prices and times; on desktop a photo of the service floats after the cursor.
 4. **Prices**: three fixed-price packages; pick Car / SUV / Truck and every price rolls like an odometer. Add-ons.
@@ -35,9 +35,18 @@
 - Visit: a little drive-through: a dusty car rolls into the studio bay and comes out gleaming.
 - All of them use `components/ui/useArrive.ts` (before-state only below the fold, after hydration) or plain CSS; with reduced motion everything shows its finished state.
 
+## 3D hero (owner's 3D pass, 9 Nov 2026)
+- Why this idea: a detailer sells reflections. Gloss-black paint under studio light is what every detailing studio photographs, and the one thing the lead's customers judge. The light arch is the inspection tunnel detailers use to find swirls, so the moving element belongs to the trade, not a generic sweep.
+- Scene: `src/components/fx/car3d/StudioScene.ts`, plain three.js. Room baked once into the reflections (big overhead softbox, two long side strips, low kickers); the arch is analytic (closest point on each segment to the reflected ray, widened by roughness) and injected into the clearcoat and glass, so it moves without re-baking anything. Soft contact shadows baked once (depth from below, two blur widths) on a faint light pool. Panel edges fade the arch where the normal turns inside a pixel (otherwise every panel gets a white outline). Renders only when something changes, only while the hero is on screen and the tab visible; pixel count capped.
+- Loading: `src/lib/three-gate.ts` (same as landscaping). Only after `load` + idle, only for `(min-width: 1024px) and (hover: hover) and (pointer: fine)`, no reduced motion, no Save-Data, WebGL2. Then `import()` of the scene and `fetch` of the model run side by side; the canvas fades in over the still once its first frame is drawn. Nothing else imports three.js. Phones, tablets and reduced motion keep the still (zero bytes of three.js; measured on the production build).
+- Still: `src/assets/photos/studio-car.jpg` (desktop) and `studio-car-phone.jpg` are rendered from the same scene by `scripts/car-stills.mjs`. The canvas crops its frame exactly like `object-fit: cover` (`DESKTOP_FRAME`; below a 3:2 hero both move the crop right, see `.hero-still` in globals.css), so the swap is invisible. Re-run the script after touching a pose, a frame or the lighting.
+- Model: "Car Concept", Khronos glTF Sample Assets, CC BY 4.0 (after "Free Concept Car 004" by Unity Fan, CC0): a made-up car, no carmaker's design or badge. Khronos/3D Commerce logos and the plate removed (the licence excludes them). `scripts/car-model.mjs` strips, simplifies (body panels untouched) and meshopt-compresses it: 11.8 MB → `public/models/lustro-car.glb` 1.1 MB, about 0.77 MB gzipped, cached for a year (`?v=1` in Hero.tsx: bump it when the file changes). The footer carries the CC BY credit line.
+- No second 3D section: the ceramic rain test is already the hands-on scene for coating and the wash is the pinned one; a second WebGL scene would add weight, not an idea.
+- The hero heading, text and buttons are never animated in (only the stats row fades). Short laptop screens (≤ 820 px tall, `short:` variant) get tighter hero spacing so the concept pill never covers the rating.
+
 ## Phones (owner's decision, 7 Nov 2026)
 Phone mode = below 768 px or any touch screen: Tailwind's `phone:` variant (`globals.css`) and `isPhone()` (`lib/motion.ts`) are the same test. At 1024 px and up nothing changed.
-- First screen: a detailer at work (`polish-black.jpg`), "Car detailing in {area}." (`Auto detailing, {area}.`), stars + count + Google, a Call button with the number on it, and prices peeking in below. The CRM tagline moves to the line under the headline. No intro animation.
+- First screen: a detailer at work (`polish-black.jpg`), "Car detailing in {area}." (`Auto detailing, {area}.`), stars + count + Google, a Call button with the number on it, and prices peeking in below. The CRM tagline moves to the line under the headline. No intro animation. After `load`, the photo crossfades once (1.4 s) to the still of the desktop's 3D car (`studio-car-phone.jpg`, about 14 KB); skipped if the page loaded late or the still lands after 3.6 s, and with reduced motion. The photo stays the LCP.
 - Bottom bar: number + Book, opaque. Header opaque once scrolled. The concept pill sits on the hero photo and scrolls away with it.
 - Order on phones (`phone:order-*`, desktop's stays): hero, prices, reviews, how it goes, the wash, services, ceramic, studio, FAQ, book, visit. Section numbers ("03 —") are hidden there (`SectionLabel`).
 - Nothing pinned: the wash scene is `WashStacked` (same words, no canvas); process cards, price cards and the studio photos are swipe rows.

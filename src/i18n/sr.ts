@@ -24,6 +24,7 @@ export const sr: Record<string, string> = {
   "Book a detail": "Zakažite termin",
   "On this page": "Na ovoj stranici",
   "Design & development:": "Dizajn i izrada:",
+  "3D car:": "3D automobil:",
   "Detailing, paint correction and ceramic coating. One car at a time, under proper light.":
     "Detailing, poliranje i keramička zaštita. Jedan auto u jednom trenutku, pod pravim svetlom.",
 
