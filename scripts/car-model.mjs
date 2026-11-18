@@ -1,13 +1,17 @@
-// Builds public/models/lustro-car.glb (about 1.1 MB, 0.76 MB gzipped) from the Khronos "Car Concept"
-// sample (CC BY 4.0, after "Free Concept Car 004" by Unity Fan, CC0):
-// https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept
+// Builds public/models/lustro-930.glb (1.37 MB, about 1 MB gzipped, 130k triangles) from "FREE 1975 Porsche 911 (930) Turbo" by
+// Karol Miklas (Lionsharp Studios), CC BY 4.0, commercial use allowed with credit:
+//   https://sketchfab.com/3d-models/free-1975-porsche-911-930-turbo-8568d9d14a994b9cae59499f0dbed21e
+// (the Sketchfab glTF export; its asset.extras carry the author, licence and source above)
 //
 // The tools aren't project dependencies; install them in a scratch folder and run from there:
 //   npm i @gltf-transform/core@4 @gltf-transform/extensions@4 @gltf-transform/functions@4 meshoptimizer sharp
-//   node car-model.mjs CarConcept.glb lustro-car.glb
+//   node car-model.mjs scene.gltf lustro-930.glb
 //
-// Logos (Khronos, 3D Commerce) and the plate are removed: the licence excludes them. Body panels
-// keep every vertex (the reflections show any simplification); hidden parts go, the rest is simplified.
+// Removed: every sticker (the carmaker's crest, dealer and author stickers), both number plates, the
+// air freshener, the baked ground shadow with its signature (the scene bakes its own shadow), the
+// transparent "coat" shell over the body (the scene gives the paint its own clearcoat), and the
+// lettering on the tyre walls. Textures 512 px WebP; the body keeps every vertex
+// (the reflections show any simplification), the interior is simplified; meshopt-compressed.
 import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { simplifyPrimitive, prune, dedup, weld, quantize, meshopt, textureCompress } from "@gltf-transform/functions";
@@ -21,68 +25,46 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies(
 const doc = await io.read(src);
 const root = doc.getRoot();
 
-// hidden from every camera angle, or a logo
-for (const n of root.listNodes())
-  if (/License|Pedal|Floormats|HoodInterior|HoodUnder|Engine|SteeringHandle|SteeringEmblem|InteriorCage|InteriorFloor|BodyUnderside$/.test(n.getName()) && !n.listChildren().length) n.dispose();
-for (const m of root.listMaterials()) {
-  if (/Interior|Floormat|Panel Sides|Dashboard|Hardware|^$/.test(m.getName())) m.setOcclusionTexture(null);
-  // the emissive textures are the logos
-  m.setEmissiveTexture(null);
-  if (!/light/i.test(m.getName())) m.setEmissiveFactor([0, 0, 0]);
-  // the tyre wall texture carries logos too
-  if (m.getName() === "Tireside") {
-    m.setBaseColorTexture(null);
-    m.setNormalTexture(null);
-    m.setBaseColorFactor([0.035, 0.035, 0.035, 1]);
-  }
-  // the interior sits behind tinted glass
-  if (/Interior|Floormat|Panel Sides/.test(m.getName())) m.setNormalTexture(null);
+const DROP = /^(930_stickers|plate|930_wunderbaum|material_0|coat)$/;
+for (const n of root.listNodes()) {
+  const m = n.getMesh();
+  if (m && m.listPrimitives().every((p) => DROP.test(p.getMaterial()?.getName() ?? ""))) n.dispose();
 }
-// colour variants and costly extensions: the scene gives paint and glass its own materials
-for (const name of ["KHR_materials_variants", "KHR_materials_transmission", "KHR_materials_iridescence", "KHR_materials_emissive_strength"])
-  root.listExtensionsUsed().find((e) => e.extensionName === name)?.dispose();
+for (const m of root.listMaterials()) {
+  const name = m.getName();
+  // the tyre wall carries the tyre maker's lettering: plain rubber, the tread stays in the normal map
+  if (name === "930_tire") {
+    m.setBaseColorTexture(null);
+    m.setBaseColorFactor([0.03, 0.03, 0.03, 1]);
+  }
+  // the scene gives paint and glass their own materials
+  if (name === "paint") m.setMetallicRoughnessTexture(null);
+  if (name === "glass") {
+    m.setBaseColorTexture(null);
+    m.setMetallicRoughnessTexture(null);
+  }
+}
+// costly extensions: the lamp lenses become plain transparent glass
+for (const name of ["KHR_materials_transmission", "KHR_materials_variants"]) root.listExtensionsUsed().find((e) => e.extensionName === name)?.dispose();
 // three derives tangents
 for (const mesh of root.listMeshes()) for (const p of mesh.listPrimitives()) p.setAttribute("TANGENT", null);
 
-/** Simplify the meshes of nodes whose name matches. */
-const simplifyNodes = (test, ratio, error) => (d) => {
-  const seen = new Set();
-  for (const n of d.getRoot().listNodes()) {
-    const m = n.getMesh();
-    if (!m || seen.has(m) || !test(n.getName())) continue;
-    seen.add(m);
-    for (const p of m.listPrimitives()) simplifyPrimitive(p, { simplifier: MeshoptSimplifier, ratio, error });
-  }
-};
-/** Drop UV sets no texture reads. */
-const dropUnusedUvs = (d) => {
+/** Simplify the primitives whose material matches. */
+const simplifyBy = (test, ratio, error) => (d) => {
   for (const mesh of d.getRoot().listMeshes())
-    for (const p of mesh.listPrimitives()) {
-      const m = p.getMaterial();
-      const uses = new Set();
-      if (m)
-        for (const [tex, info] of [
-          [m.getBaseColorTexture(), m.getBaseColorTextureInfo()],
-          [m.getNormalTexture(), m.getNormalTextureInfo()],
-          [m.getMetallicRoughnessTexture(), m.getMetallicRoughnessTextureInfo()],
-          [m.getOcclusionTexture(), m.getOcclusionTextureInfo()],
-        ])
-          if (tex && info) uses.add(info.getTexCoord());
-      if (!uses.has(0) && !uses.has(1)) p.setAttribute("TEXCOORD_0", null);
-      if (!uses.has(1)) p.setAttribute("TEXCOORD_1", null);
-    }
+    for (const p of mesh.listPrimitives()) if (test(p.getMaterial()?.getName() ?? "")) simplifyPrimitive(p, { simplifier: MeshoptSimplifier, ratio, error });
 };
 
 await doc.transform(
   prune(),
-  dropUnusedUvs,
   dedup(),
   weld(),
-  simplifyNodes((n) => !/^Body(?!Windshield)/.test(n), 0.55, 0.0006),
-  simplifyNodes((n) => /Wiper/.test(n), 0.06, 0.01),
-  simplifyNodes((n) => /Interior|BrakePad|Gasket|Handle01|Axles/.test(n), 0.2, 0.004),
-  simplifyNodes((n) => /Rim/.test(n), 0.3, 0.003),
+  // the cabin sits behind tinted glass
+  simplifyBy((m) => m === "930_plastics", 0.35, 0.002),
+  simplifyBy((m) => /930_chromes|black/.test(m), 0.6, 0.0008),
+  simplifyBy((m) => /930_rim|930_tire/.test(m), 0.6, 0.0006),
   prune(),
+  // seen at hero size, 512 px is plenty (about 330 KB of textures in all)
   textureCompress({ encoder: sharp, targetFormat: "webp", resize: [512, 512], quality: 80 }),
   quantize({ quantizePosition: 14, quantizeNormal: 12, quantizeTexcoord: 12 }),
   meshopt({ encoder: MeshoptEncoder, level: "high" }),

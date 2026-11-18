@@ -92,8 +92,8 @@ export function Footer() {
         {/* the hero car's licence (CC BY 4.0) asks for this line */}
         <p>
           {t("3D car:")}{" "}
-          <a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept" className="hover:text-pearl" rel="noopener" target="_blank" data-no-translate>
-            Car Concept, Khronos Group
+          <a href="https://sketchfab.com/3d-models/free-1975-porsche-911-930-turbo-8568d9d14a994b9cae59499f0dbed21e" className="hover:text-pearl" rel="noopener" target="_blank" data-no-translate>
+            1975 Porsche 911 (930) Turbo, Karol Miklas
           </a>
           ,{" "}
           <a href="https://creativecommons.org/licenses/by/4.0/" className="hover:text-pearl" rel="noopener license" target="_blank" data-no-translate>

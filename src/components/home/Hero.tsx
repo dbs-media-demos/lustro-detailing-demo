@@ -4,6 +4,7 @@ import { getImageProps } from "next/image";
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
 import studioCar from "@/assets/photos/studio-car.jpg";
+import studioCarGloss from "@/assets/photos/studio-car-gloss.jpg";
 import studioCarPhone from "@/assets/photos/studio-car-phone.jpg";
 import heroWork from "@/assets/photos/polish-black.jpg";
 import { useBiz } from "@/components/preview/BizContext";
@@ -14,9 +15,9 @@ import { useT } from "@/lib/i18n";
 import { isPhone, prefersReducedMotion } from "@/lib/motion";
 import { after3DGate, mark3DOff } from "@/lib/three-gate";
 import { loaderShowing, whenLoaderDone } from "@/lib/loader";
-import type { Studio } from "@/components/fx/car3d/StudioScene";
+import type { LineSpot, Studio } from "@/components/fx/car3d/StudioScene";
 
-const MODEL = "/models/lustro-car.glb?v=1";
+const MODEL = "/models/lustro-930.glb?v=1";
 // /v2's centrepiece (canvas 2D, no three.js): fetched only on a desktop showing that hero
 const PaintCheck = lazy(() => import("./PaintCheck"));
 
@@ -33,11 +34,13 @@ const isWide = () => window.matchMedia(WIDE).matches;
 const EMPTY = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 /**
- * Desktop: a real-time 3D studio (three.js, behind the gate in lib/three-gate). A gloss-black car
- * under a big softbox; an inspection light arch passes over it once on arrival, then scroll runs
- * the arch down the car while the camera glides along the flank, and the cursor leans the camera
- * so the reflections slide over the paint. Until then (and for anything that fails the gate:
- * tablets, reduced motion, Save-Data, no WebGL) a still rendered from the same scene sits in the
+ * Desktop: a real-time 3D studio (three.js, behind the gate in lib/three-gate). A gloss-black 1975
+ * Porsche 911 Turbo on a turntable, taped for a 50/50: corrected mirror paint in front of a volt
+ * tape line, hazy swirled paint behind it. From the first frame the turntable turns and the polish
+ * line moves over the door; scroll carries the line to the tail while the camera glides in, the
+ * cursor turns the studio lights so the reflections slide over the paint, and "After" / "Before"
+ * labels ride the tape. Until then (and for anything that fails the gate: tablets, reduced
+ * motion, Save-Data, no WebGL) a still rendered from the same scene sits in the
  * server HTML, framed identically, and the canvas fades in over it only once the scene is loaded,
  * its shaders compiled and one frame drawn. If the first two seconds run under about 45 fps (or a
  * 3rd frame takes over 100 ms, or one over 400 ms), the canvas fades back to the still and the
@@ -55,6 +58,8 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const afterRef = useRef<HTMLSpanElement>(null);
+  const beforeRef = useRef<HTMLSpanElement>(null);
   const [live, setLive] = useState(false);
   const [xfade, setXfade] = useState(false);
   // false on the server and during hydration, so the server HTML is the same on every screen
@@ -91,17 +96,28 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
           const t = window.setTimeout(free, 800);
           off.push(() => window.clearTimeout(t), free);
         };
-        studio = await createStudio(canvas, { model: buf, progress, onFirstFrame: () => setLive(true), onSlow, cancelled: () => disposed });
+        // the labels ride the tape: "After" on the nose's side of it, "Before" on the other
+        const after = afterRef.current;
+        const before = beforeRef.current;
+        const onLine = ({ x, y, afterLeft, alpha }: LineSpot) => {
+          if (!after || !before) return;
+          const a = String(Math.round(alpha * 100) / 100);
+          const [l, r] = afterLeft ? [after, before] : [before, after];
+          l.style.transform = `translate3d(calc(${x - 16}px - 100%), ${y + 22}px, 0)`;
+          r.style.transform = `translate3d(${x + 16}px, ${y + 22}px, 0)`;
+          if (after.style.opacity !== a) after.style.opacity = before.style.opacity = a;
+        };
+        studio = await createStudio(canvas, { model: buf, progress, onFirstFrame: () => setLive(true), onSlow, onLine, cancelled: () => disposed });
         if (disposed) {
           studio.dispose();
           return;
         }
         const s = studio;
-        // the light arch passes once the lead's logo loader has gone (it may still be up)
+        // the turntable starts as the canvas fades in (once the lead's logo loader has gone, if it's up)
         let intro = 0;
         const held = loaderShowing();
         const unwait = whenLoaderDone(() => {
-          intro = window.setTimeout(() => s.intro(), held ? 250 : 900);
+          intro = window.setTimeout(() => s.intro(), held ? 250 : 350);
         });
         let on = true;
         const onScroll = () => {
@@ -171,8 +187,9 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
     };
   }, []);
 
-  const alt = t("A gloss-black car under the lights of a dark detailing studio");
-  const { props: { srcSet: wide, sizes: wideSizes } } = getImageProps({ alt, src: studioCar, sizes: "100vw", quality: 75 });
+  const alt = t("A gloss-black 1975 Porsche 911 Turbo under the lights of a dark detailing studio");
+  // /: the 50/50 the live scene starts from; /v2: the car fully corrected, which its swirl check paints over
+  const { props: { srcSet: wide, sizes: wideSizes } } = getImageProps({ alt, src: kind === "3d" ? studioCar : studioCarGloss, sizes: "100vw", quality: 75 });
   const { props: { srcSet: work, ...img } } = getImageProps({ alt, src: heroWork, sizes: "100vw", quality: 75, loading: "eager" });
   const { props: { srcSet: carPhone } } = getImageProps({ alt: "", src: studioCarPhone, sizes: "100vw", quality: 75 });
   // Phones top out at 1080w: sharp on a 3x screen and well under 100 KB.
@@ -218,7 +235,18 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
           </picture>
         )}
         {kind === "3d" ? (
-          <canvas ref={canvasRef} aria-hidden className={`absolute inset-0 h-full w-full transition-opacity duration-700 phone:hidden ${live ? "opacity-100" : "opacity-0"}`} />
+          <>
+            <canvas ref={canvasRef} aria-hidden className={`absolute inset-0 h-full w-full transition-opacity duration-700 phone:hidden ${live ? "opacity-100" : "opacity-0"}`} />
+            <div aria-hidden className={`transition-opacity duration-700 phone:hidden ${live ? "opacity-100" : "opacity-0"}`}>
+              <span ref={afterRef} className="t-label pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[0.7rem] text-pearl will-change-transform [text-shadow:0_0_6px_#07080a,0_1px_12px_#07080a]" style={{ opacity: 0 }}>
+                <span className="mr-2 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-volt align-middle" />
+                {t("After · corrected")}
+              </span>
+              <span ref={beforeRef} className="t-label pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[0.7rem] text-mist will-change-transform [text-shadow:0_0_6px_#07080a,0_1px_12px_#07080a]" style={{ opacity: 0 }}>
+                {t("Before · swirl marks")}
+              </span>
+            </div>
+          </>
         ) : (
           paint && (
             <Suspense fallback={null}>

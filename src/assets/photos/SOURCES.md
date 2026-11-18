@@ -34,6 +34,6 @@ Each one is re-graded by `scripts/grade.mjs` into `src/assets/photos/`.
 
 | File | Source |
 |---|---|
-| studio-car.jpg, studio-car-phone.jpg | Rendered from the hero's 3D scene by `scripts/car-stills.mjs`. Car: "Car Concept", Khronos Group glTF Sample Assets, CC BY 4.0 (https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept), after "Free Concept Car 004" by Unity Fan (CC0). Credited in the footer. |
+| studio-car.jpg, studio-car-gloss.jpg, studio-car-phone.jpg | Rendered from the hero's 3D scene by `scripts/car-stills.mjs`. Car: "FREE 1975 Porsche 911 (930) Turbo" by Karol Miklas (Lionsharp Studios), CC BY 4.0 (https://sketchfab.com/3d-models/free-1975-porsche-911-930-turbo-8568d9d14a994b9cae59499f0dbed21e); stickers, crest, plates and tyre lettering removed, re-materialled. Credited in the footer and README.md. |
 
 sedan-dark.jpg is no longer used (the 3D studio replaced it as the desktop hero).

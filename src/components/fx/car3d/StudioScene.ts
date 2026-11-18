@@ -5,54 +5,61 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 /**
  * Hero centrepiece (desktop only, loaded behind the 3D gate in Hero.tsx).
  *
- * A gloss-black car in a dark detail studio: a big overhead softbox and two long side strips live
- * in the reflections, an inspection light arch (two posts and a span, like a detailer's light
- * tunnel) travels along the car, and soft contact shadows hold it to the epoxy floor. On arrival the
- * arch makes one pass and the lamps blink; scroll (`setProgress`, 0 → 1) runs it from the front
- * wheels to past the tail while the camera glides down the flank, so the light pours along the
- * clearcoat; the pointer leans the camera a few degrees, which slides every reflection over the paint.
+ * A gloss-black 1975 Porsche 911 Turbo on a slow turntable in a dark detail studio: a big overhead
+ * softbox and two long side strips live in the reflections, soft contact shadows hold it to the
+ * turntable. Across the body runs a strip of volt masking tape, the 50/50 every detailer shoots: in
+ * front of it the paint is corrected (mirror gloss), behind it the paint is as it came in (a milky
+ * haze, softer reflections, and swirl marks: fine arcs that light up wherever a softbox is reflected).
  *
- * The arch is analytic (closest point on each segment to the reflected ray, widened by roughness),
- * injected into the clearcoat and the glass: sharp, cheap, and it moves without re-baking the
- * environment. Renders only when something changes and only while on screen.
+ * On arrival the turntable spins up and the polish line advances over the door; scroll
+ * (`setProgress`, 0 → 1) carries it to the tail while the camera glides in and down, so the whole car
+ * ends up corrected; the pointer turns the studio's lights a little (every reflection slides over the
+ * paint) and leans the camera. `onLine` reports where the tape is on screen for the HTML labels.
  *
- * Model: "Car Concept" from the Khronos glTF Sample Assets (CC BY 4.0), after "Free Concept Car 004"
- * by Unity Fan (CC0). Logos and plate removed, compressed by scripts/car-model.mjs.
+ * Draws every frame only while something moves, only while on screen and the tab is visible.
+ *
+ * Model: "FREE 1975 Porsche 911 (930) Turbo" by Lionsharp Studios (CC BY 4.0), crest, lettering and
+ * plates removed, compressed by scripts/car-model.mjs.
  */
 export type Studio = {
   setProgress: (p: number) => void;
   setPointer: (x: number, y: number) => void;
   setVisible: (v: boolean) => void;
   resize: () => void;
-  /** Plays the arrival once: the strip light passes over the car and the lamps come on. */
+  /** Starts the arrival: the turntable spins up and the polish line moves over the door. */
   intro: () => void;
-  /** One finished frame for the stills (phone and fallback). */
-  still: (view: StillView) => void;
+  /** One finished frame for the stills: `gloss` renders the car fully corrected (phones, /v2). */
+  still: (view: StillView, gloss?: boolean) => void;
   dispose: () => void;
 };
+
+/** Where the tape line sits on the canvas (CSS px), and which side of it is the corrected paint. */
+export type LineSpot = { x: number; y: number; afterLeft: boolean; alpha: number };
 
 /** A frame of reference the canvas crops like `object-fit: cover`, so it lines up with the still. */
 export type Frame = { w: number; h: number; x: number; y: number; shift: number; xNarrow?: number };
 export type StillView = "desktop" | "phone";
 
 // xNarrow: below a 3:2 hero the crop moves right (the .hero-still container query in globals.css)
-export const DESKTOP_FRAME: Frame = { w: 2400, h: 1500, x: 0.6, y: 0.5, shift: 0.19, xNarrow: 0.82 };
+export const DESKTOP_FRAME: Frame = { w: 2400, h: 1500, x: 0.6, y: 0.5, shift: 0.205, xNarrow: 0.82 };
 export const PHONE_FRAME: Frame = { w: 1200, h: 960, x: 0.5, y: 0.5, shift: 0 };
 
 const INK = new THREE.Color("#07080a");
 const CYC_LOW = new THREE.Color("#121419");
-const TARGET = new THREE.Vector3(0, 0.62, 0);
+const VOLT = new THREE.Color("#d4fa4c");
+const TARGET = new THREE.Vector3(0, 0.6, 0);
 // camera poses: azimuth from the nose (+z) toward the driver's side (+x), elevation, distance
-const POSE_A = { az: 0.95, el: 0.13, dist: 13, fov: 22, tx: -0.1 };
-const POSE_B = { az: 1.5, el: 0.08, dist: 13.8, fov: 22, tx: 0.25 };
-const PHONE_POSE = { az: 0.95, el: 0.13, dist: 9.8, fov: 24, tx: 0 };
-// the inspection arch: two posts beside the car and a span over it, travelling along the car
-const ARCH_W = 1.75;
-const ARCH_H = 2.1;
-const ARCH_Z0 = 1.35; // resting over the front wheels
-const ARCH_Z1 = -3.4; // past the tail
-const ARCH_IN = 4.6; // ahead of the nose
-const INTRO_S = 3.2;
+const POSE_A = { az: 0.9, el: 0.12, dist: 13.3, fov: 22, tx: -0.05 };
+const POSE_B = { az: 1.2, el: 0.05, dist: 11.2, fov: 22, tx: 0.3 };
+const PHONE_POSE = { az: 0.9, el: 0.12, dist: 9.6, fov: 24, tx: 0 };
+// the polish line, as a share of the car's length from the nose
+const LINE_REST = 0.44; // the still: nose, front wing and half the door done
+const LINE_INTRO = 0.6; // after the arrival
+const LINE_END = 1.06; // past the tail
+const INTRO_S = 3;
+// the turntable: one turn in about 50 s once it's up to speed
+const TURN_SPEED = (Math.PI * 2) / 50;
+const SPIN_UP_S = 1.6;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 // the watch after the canvas appears: under 45 fps on average, a 3rd frame over 100 ms or one over
@@ -79,68 +86,89 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
 const easeOut = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
 
 /**
- * A line light seen in a glossy surface: the closest point on the segment to the reflected ray,
- * a soft-edged core whose angular width grows with roughness, a faint halo, and Fresnel.
+ * The 50/50 on the paint, in the turntable's frame (nose to +z). Behind the line (z < uLine): a
+ * milky haze, a rougher clearcoat and swirl marks, arcs of random radius around random centres
+ * that only show where something bright is reflected, as real swirls do. On the line: the tape.
  */
-const ARCH_GLSL = /* glsl */ `
-uniform vec3 uArch[4];
-uniform float uArchW;
-uniform vec3 uArchColor;
-float lineLight(vec3 P, vec3 N, vec3 R, vec3 A, vec3 B, float rough) {
-  vec3 d = B - A;
-  vec3 w0 = A - P;
-  float a = dot(d, d);
-  float b = dot(d, R);
-  float den = max(a - b * b, 1e-5);
-  float s = clamp((b * dot(R, w0) - dot(d, w0)) / den, 0.0, 1.0);
-  vec3 Lp = A + s * d - P;
-  float dist = length(Lp);
-  vec3 L = Lp / dist;
-  if (dot(N, L) <= 0.0) return 0.0;
-  float ang = acos(clamp(dot(R, L), -1.0, 1.0));
-  float w = uArchW / dist + rough * rough * 1.6;
-  float core = 1.0 - smoothstep(w * 0.55, w * 1.35, ang);
-  float halo = exp(-ang * ang / (w * w * 18.0 + 1e-4)) * 0.16;
-  return core + halo;
-}
-vec3 archLight(vec3 P, vec3 N, vec3 V, float rough) {
-  vec3 R = reflect(-V, N);
-  float l = lineLight(P, N, R, uArch[0], uArch[1], rough)
-          + lineLight(P, N, R, uArch[1], uArch[2], rough)
-          + lineLight(P, N, R, uArch[2], uArch[3], rough);
-  float nv = clamp(dot(N, V), 0.0, 1.0);
-  float fres = 0.04 + 0.96 * pow(1.0 - nv, 5.0);
-  // tight panel edges sweep through every angle inside a pixel: let them go quiet, not outline
-  float edge = 1.0 - smoothstep(0.04, 0.22, length(fwidth(N)));
-  return uArchColor * min(l, 1.2) * fres * edge / (1.0 + rough * 6.0);
+const PAINT_VERT = /* glsl */ `
+uniform mat4 uToCar;
+varying vec3 vCar;
+varying vec3 vCarN;
+`;
+const PAINT_FRAG = /* glsl */ `
+uniform float uLine;
+uniform vec3 uTape;
+varying vec3 vCar;
+varying vec3 vCarN;
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+// swirl arcs on the plane facing the normal's main axis
+float swirls(vec3 p, vec3 n) {
+  vec3 a = abs(n);
+  vec2 q = a.x > a.y && a.x > a.z ? p.zy : (a.y > a.z ? p.xz : p.xy);
+  q *= 3.2; // cells of about 30 cm
+  vec2 c = floor(q);
+  float s = 0.0;
+  for (int j = -1; j <= 1; j++)
+    for (int i = -1; i <= 1; i++) {
+      vec2 id = c + vec2(float(i), float(j));
+      vec2 o = id + vec2(h21(id), h21(id + 17.1)) - q;
+      float d = length(o);
+      if (d > 0.95) continue;
+      float rings = d * 26.0;
+      float k = floor(rings);
+      float ang = atan(o.y, o.x);
+      // each ring only in a few arcs, and only some rings at all
+      float seg = floor((ang + 3.1416) * 1.27 + h21(id + k) * 6.0);
+      float on = step(0.62, h21(id * 1.7 + vec2(k, seg)));
+      float f = abs(fract(rings) - 0.5);
+      float w = fwidth(rings) * 0.9 + 0.035;
+      s += on * (1.0 - smoothstep(0.0, w, f - 0.03)) * (1.0 - d);
+    }
+  return min(s, 1.0);
 }
 `;
 
-type ArchUniforms = {
-  uArch: { value: THREE.Vector3[] };
-  uArchW: { value: number };
-  uArchColor: { value: THREE.Color };
-};
+type PaintUniforms = { uToCar: { value: THREE.Matrix4 }; uLine: { value: number }; uTape: { value: THREE.Color } };
 
-/** Adds the arch to a standard/physical material: on the clearcoat when there is one. */
-function withArch(mat: THREE.MeshStandardMaterial, u: ArchUniforms, gain = 1) {
+/** Gives the car's paint its 50/50: corrected in front of the tape line, as it came in behind it. */
+function withCorrection(mat: THREE.MeshPhysicalMaterial, u: PaintUniforms) {
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, u);
-    shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${ARCH_GLSL}`)
-      // a softer grazing response, so the rolled panel edges don't outline every panel in white
-      .replace("#include <lights_physical_fragment>", "#include <lights_physical_fragment>\n  material.clearcoatF90 = 0.4;")
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\n${PAINT_VERT}`)
       .replace(
-      "#include <opaque_fragment>",
-      `#ifdef USE_CLEARCOAT
-  outgoingLight += archLight(-vViewPosition, clearcoatNormal, normalize(vViewPosition), material.clearcoatRoughness) * material.clearcoat * ${gain.toFixed(2)};
-#else
-  outgoingLight += archLight(-vViewPosition, normal, normalize(vViewPosition), material.roughness) * ${gain.toFixed(2)};
+        "#include <project_vertex>",
+        `#include <project_vertex>
+  vCar = (uToCar * modelMatrix * vec4(transformed, 1.0)).xyz;
+  vCarN = normalize(mat3(uToCar) * mat3(modelMatrix) * objectNormal);`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\n${PAINT_FRAG}`)
+      .replace(
+        "#include <lights_physical_fragment>",
+        `#include <lights_physical_fragment>
+  // a softer grazing response, so the rolled panel edges don't outline every panel in white
+  material.clearcoatF90 = 0.4;
+  float dz = vCar.z - uLine;
+  float haze = 1.0 - smoothstep(-0.012, 0.0, dz);
+  float tape = 1.0 - smoothstep(0.011, 0.0135, abs(dz - 0.011));
+  material.clearcoatRoughness = mix(material.clearcoatRoughness, 0.24, haze);
+  material.roughness = mix(material.roughness, 0.62, haze);`,
+      )
+      .replace(
+        "#include <opaque_fragment>",
+        `#ifdef USE_CLEARCOAT
+  // swirls catch the reflected softboxes; the haze lifts the black toward a milky grey
+  outgoingLight += swirls(vCar, vCarN) * haze * clearcoatSpecularIndirect * 3.2;
 #endif
+  outgoingLight = mix(outgoingLight, outgoingLight * 0.82 + vec3(0.022, 0.023, 0.025), haze);
+  // the tape: matte volt, lit a little by the room so it reads on black
+  float lit = 0.55 + 0.45 * clamp(dot(normal, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5, 0.0, 1.0);
+  outgoingLight = mix(outgoingLight, uTape * lit, tape);
 #include <opaque_fragment>`,
-    );
+      );
   };
-  mat.customProgramCacheKey = () => `arch${gain}`;
+  mat.customProgramCacheKey = () => "lustro-5050";
   return mat;
 }
 
@@ -331,6 +359,8 @@ export async function createStudio(
     onFirstFrame?: () => void;
     /** The first seconds ran too slowly (see WATCH_MS): the caller fades back to the still. */
     onSlow?: () => void;
+    /** Every drawn frame: where the tape line is, for the labels riding it. */
+    onLine?: (spot: LineSpot) => void;
     /** Stop early if the caller no longer wants the scene. */
     cancelled?: () => boolean;
   },
@@ -384,16 +414,10 @@ export async function createStudio(
 
   const camera = new THREE.PerspectiveCamera(POSE_A.fov, DESKTOP_FRAME.w / DESKTOP_FRAME.h, 0.1, 80);
 
-  // the inspection arch (world corners, and the same in view space for the shaders)
-  const arch: ArchUniforms = {
-    uArch: { value: [0, 1, 2, 3].map(() => new THREE.Vector3()) },
-    uArchW: { value: 0.06 },
-    uArchColor: { value: new THREE.Color(1, 1, 1).multiplyScalar(24) },
-  };
-  const archWorld = [0, 1, 2, 3].map(() => new THREE.Vector3());
-
   // floor: dark epoxy that catches the softboxes, fading into the cove
+  const envMats: THREE.MeshStandardMaterial[] = [];
   const floorMat = new THREE.MeshStandardMaterial({ color: "#0b0c0f", roughness: 0.32, metalness: 0, envMap, envMapIntensity: 0.2 });
+  envMats.push(floorMat);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 64).rotateX(-Math.PI / 2), floorMat);
   scene.add(floor);
 
@@ -414,89 +438,85 @@ export async function createStudio(
   await breathe();
   abort();
 
-  const paint = withArch(
-    new THREE.MeshPhysicalMaterial({ color: "#0b0c0e", metalness: 0.6, roughness: 0.34, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.25 }),
-    arch,
+  const pu: PaintUniforms = { uToCar: { value: new THREE.Matrix4() }, uLine: { value: 0 }, uTape: { value: VOLT.clone().multiplyScalar(0.95) } };
+  const paint = withCorrection(
+    new THREE.MeshPhysicalMaterial({ color: "#0a0b0d", metalness: 0.55, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.3 }),
+    pu,
   );
-  const paintTrim = withArch(
-    new THREE.MeshPhysicalMaterial({ color: "#050506", metalness: 0.2, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.1 }),
-    arch,
-  );
-  const glass = withArch(
-    new THREE.MeshPhysicalMaterial({ color: "#05070a", metalness: 0, roughness: 0.02, transparent: true, opacity: 0.82, clearcoat: 1, clearcoatRoughness: 0.0, envMapIntensity: 1.4, depthWrite: false }),
-    arch,
-  );
+  const glass = new THREE.MeshPhysicalMaterial({ color: "#05070a", metalness: 0, roughness: 0.02, transparent: true, opacity: 0.84, clearcoat: 1, clearcoatRoughness: 0, envMapIntensity: 1.4, depthWrite: false });
   const lampMats: THREE.MeshStandardMaterial[] = [];
   car.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
     const m = o.material as THREE.MeshStandardMaterial;
     const name = m.name;
-    if (/^Paint 1/.test(name)) {
+    if (name === "paint") {
+      // the model's baked occlusion keeps the panel gaps and the wheel arches dark
       paint.aoMap = m.aoMap;
+      paint.userData.paint = true; // scripts/paint-mask.mjs finds the paint by this
       o.material = paint;
-    } else if (/^Paint 2/.test(name)) {
-      paintTrim.aoMap = m.aoMap;
-      o.material = paintTrim;
-    } else if (name === "Glass") {
+    } else if (name === "glass") {
       o.material = glass;
       o.renderOrder = 2;
-    } else if (name === "Brake") {
-      // the studio's one colour, on the calipers
-      m.color.set("#c8f03e");
-      m.metalness = 0.1;
-      m.roughness = 0.35;
-    } else if (/Interior 3|Interior 2|Interior 1|Panel Sides/.test(name)) {
-      m.color.set(/Interior 3/.test(name) ? "#1b1815" : "#0c0c0d");
-    } else if (name === "Headlight" || name === "Signallight" || name === "Brakelight") {
-      m.emissive.set(name === "Brakelight" ? "#ff2a1a" : name === "Signallight" ? "#ff9a2a" : "#f4f8ff");
-      m.emissiveIntensity = 0;
-      m.userData.on = name === "Headlight" ? 6 : name === "Brakelight" ? 1.4 : 0;
+    } else if (name === "930_lights") {
+      // headlamps and tail lamps glow in their own colours (the texture is the light pattern)
+      m.emissive.set("#ffffff");
+      m.emissiveMap = m.map;
+      m.userData.on = 0.55;
       lampMats.push(m);
-    } else if (name === "Rim2") {
-      m.color.set("#8a8f96");
-      m.roughness = 0.18;
-    } else if (name === "Mirror") {
-      m.roughness = 0.02;
+    } else if (name === "930_lights_refraction") {
+      // the lamp lenses: clear glass over the reflectors
+      m.color.set("#0a0c0f");
+      m.metalness = 0;
+      m.roughness = 0.04;
+      m.opacity = 0.22;
     }
     if (!lampMats.includes(m) && m.emissive) m.emissive.setRGB(0, 0, 0);
-    if (m.envMapIntensity !== undefined && !/^Paint|Glass/.test(name)) m.envMapIntensity = 0.8;
-  });
-  for (const m of [paint, paintTrim, glass]) m.envMap = envMap;
-  car.traverse((o) => {
-    if (o instanceof THREE.Mesh && "envMap" in o.material) (o.material as THREE.MeshStandardMaterial).envMap = envMap;
+    if ("envMap" in o.material) {
+      const mm = o.material as THREE.MeshStandardMaterial;
+      mm.envMap = envMap;
+      if (mm !== paint && mm !== glass) mm.envMapIntensity = 0.85;
+      if (!envMats.includes(mm)) envMats.push(mm);
+    }
   });
 
-  // nose to +z, wheels on the floor, centred
-  const fl = car.getObjectByName("WheelFrontL");
-  const rl = car.getObjectByName("WheelRearL");
+  // a real 930's length (4.29 m), centred on the turntable, wheels on the floor, nose to +z
   car.updateMatrixWorld(true);
-  if (fl && rl) {
-    const a = fl.getWorldPosition(new THREE.Vector3());
-    const b = rl.getWorldPosition(new THREE.Vector3());
-    car.rotation.y = Math.atan2(a.x - b.x, a.z - b.z) * -1;
-    car.updateMatrixWorld(true);
-  }
+  const raw = new THREE.Box3().setFromObject(car, true);
+  car.scale.multiplyScalar(4.29 / (raw.max.z - raw.min.z));
+  car.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(car, true);
   const center = box.getCenter(new THREE.Vector3());
   car.position.x -= center.x;
   car.position.z -= center.z;
   car.position.y -= box.min.y;
   car.updateMatrixWorld(true);
+  // the radio antenna on the wing: a hair-thin wire that breaks into a dashed line on screen
+  const part = new THREE.Box3();
+  const ps = new THREE.Vector3();
+  car.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    part.setFromObject(o, true).getSize(ps);
+    if (ps.y > 0.3 && ps.x < 0.08 && ps.z < 0.08) o.visible = false;
+  });
   const size = box.getSize(new THREE.Vector3());
+  const noseZ = size.z / 2;
   const carRoot = new THREE.Group();
   carRoot.add(car);
-  scene.add(carRoot);
+  // the turntable: everything on it turns together (the shadow is baked in its frame)
+  const table = new THREE.Group();
+  table.add(carRoot);
+  scene.add(table);
 
-  // a soft pool of light on the floor under the car, so the shadow has something to fall on
+  // a soft round pool of light on the floor, so the shadow has something to fall on
   const pool = new THREE.Mesh(
-    new THREE.PlaneGeometry(9, 12).rotateX(-Math.PI / 2),
+    new THREE.CircleGeometry(5.2, 64).rotateX(-Math.PI / 2),
     new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       uniforms: { uColor: { value: new THREE.Color("#3a3f48") } },
-      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `uniform vec3 uColor; varying vec2 vUv;
-        void main(){ float d = length((vUv - 0.5) * 2.0); float a = pow(1.0 - smoothstep(0.0, 1.0, d), 1.6);
+      vertexShader: "varying vec2 vP; void main(){ vP = position.xz / 5.2; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: `uniform vec3 uColor; varying vec2 vP;
+        void main(){ float d = length(vP); float a = pow(1.0 - smoothstep(0.0, 1.0, d), 1.6);
           gl_FragColor = vec4(uColor, a * 0.85);
           #include <colorspace_fragment>
         }`,
@@ -504,11 +524,17 @@ export async function createStudio(
   );
   pool.position.y = 0.001;
   scene.add(pool);
+  // the turntable's rim: a thin brushed-steel edge that catches the softboxes as it turns
+  const rimMat = new THREE.MeshStandardMaterial({ color: "#2a2e34", metalness: 1, roughness: 0.28, envMap, envMapIntensity: 0.9 });
+  envMats.push(rimMat);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(3.05, 0.018, 8, 160).rotateX(Math.PI / 2), rimMat);
+  rim.position.y = 0.012;
+  table.add(rim);
 
   await breathe();
   abort();
   const shadows = await contactShadows(renderer, carRoot, size);
-  scene.add(shadows.group);
+  table.add(shadows.group);
 
   // ── state ──
   let frame = opts.frame ?? DESKTOP_FRAME;
@@ -516,7 +542,7 @@ export async function createStudio(
   let shown = progress;
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   let introT = -1; // -1: not started, else seconds since start
-  let introDone = false;
+  let turn = 0;
   let visible = true;
   let raf = 0;
   let last = 0;
@@ -525,23 +551,26 @@ export async function createStudio(
   // the frame watch: starts with the first visible frame, paused while off screen or hidden
   const watch = { on: !!opts.onSlow, t0: 0, n: 0, worst: 0, cost: 0, hitches: 0 };
 
-  const setArch = (z: number) => {
-    archWorld[0].set(-ARCH_W, 0.25, z);
-    archWorld[1].set(-ARCH_W, ARCH_H, z);
-    archWorld[2].set(ARCH_W, ARCH_H, z);
-    archWorld[3].set(ARCH_W, 0.25, z);
+  /** The line at a share of the car's length from the nose. */
+  const setLine = (u: number) => {
+    pu.uLine.value = noseZ - u * size.z;
   };
 
   const placeCamera = (p: number, view: StillView | "live") => {
     const P = view === "phone" ? PHONE_POSE : null;
     const t = ease(clamp01(p));
-    const az = P ? P.az : THREE.MathUtils.lerp(POSE_A.az, POSE_B.az, t) + pointer.x * 0.07;
-    const el = P ? P.el : THREE.MathUtils.lerp(POSE_A.el, POSE_B.el, t) + pointer.y * 0.025;
+    const az = P ? P.az : THREE.MathUtils.lerp(POSE_A.az, POSE_B.az, t) + pointer.x * 0.05;
+    const el = P ? P.el : THREE.MathUtils.lerp(POSE_A.el, POSE_B.el, t) + pointer.y * 0.02;
     const dist = P ? P.dist : THREE.MathUtils.lerp(POSE_A.dist, POSE_B.dist, t);
     const tx = P ? P.tx : THREE.MathUtils.lerp(POSE_A.tx, POSE_B.tx, t);
     camera.fov = P ? P.fov : POSE_A.fov;
     camera.position.set(Math.sin(az) * Math.cos(el) * dist, TARGET.y + Math.sin(el) * dist, Math.cos(az) * Math.cos(el) * dist);
     camera.lookAt(TARGET.x + tx, TARGET.y, TARGET.z);
+  };
+
+  /** The studio's lights turn with the pointer: every reflection slides over the paint. */
+  const setLights = (yaw: number) => {
+    for (const m of envMats) m.envMapRotation.y = yaw;
   };
 
   const applyFrame = (w: number, h: number) => {
@@ -569,19 +598,40 @@ export async function createStudio(
     request();
   };
 
-  const updateArchUniforms = () => {
-    camera.updateMatrixWorld();
-    archWorld.forEach((p, i) => arch.uArch.value[i].copy(p).applyMatrix4(camera.matrixWorldInverse));
+  // where the tape is on screen: its foot on the side facing the camera, and which way the nose points
+  const v = new THREE.Vector3();
+  const nose = new THREE.Vector3();
+  const reportLine = () => {
+    if (!opts.onLine) return;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const toScreen = (p: THREE.Vector3) => p.applyMatrix4(table.matrixWorld).project(camera);
+    // the camera's side of the car, in the turntable's frame
+    const camLocal = table.worldToLocal(camera.position.clone());
+    const side = Math.sign(camLocal.x) || 1;
+    toScreen(v.set(side * (size.x / 2) * 0.9, 0.08, pu.uLine.value));
+    const a = toScreen(nose.set(0, 0.5, noseZ)).x;
+    const b = toScreen(new THREE.Vector3(0, 0.5, -noseZ)).x;
+    // fades out when the car points at the camera (the line then runs across, not along)
+    const spread = Math.abs(a - b);
+    const inside = pu.uLine.value < noseZ - 0.05 && pu.uLine.value > -noseZ + 0.05;
+    opts.onLine({ x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h, afterLeft: a < b, alpha: inside ? clamp01((spread - 0.18) / 0.2) : 0 });
   };
 
-  const setLamps = (v: number) => {
-    for (const m of lampMats) m.emissiveIntensity = (m.userData.on as number) * v;
+  const setLamps = (on: number) => {
+    for (const m of lampMats) m.emissiveIntensity = (m.userData.on as number) * on;
   };
 
   const render = () => {
-    updateArchUniforms();
+    table.rotation.y = turn;
+    table.updateMatrixWorld(true);
+    pu.uToCar.value.copy(table.matrixWorld).invert();
     renderer.render(scene, camera);
+    reportLine();
   };
+
+  // the line from the scroll (after the arrival has moved it on)
+  const lineAt = (p: number, from: number) => THREE.MathUtils.lerp(from, LINE_END, ease(clamp01(p / 0.8)));
 
   const step = (now: number) => {
     const now0 = performance.now();
@@ -620,30 +670,30 @@ export async function createStudio(
 
     progress = opts.progress?.() ?? progress;
     const dp = progress - shown;
-    shown += dp * Math.min(1, dt * 7);
+    shown += dp * Math.min(1, dt * 6);
     if (Math.abs(dp) > 0.0005) busy = true;
     else shown = progress;
 
-    pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 3.2);
-    pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 3.2);
+    pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 3);
+    pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 3);
     if (Math.abs(pointer.tx - pointer.x) + Math.abs(pointer.ty - pointer.y) > 0.0008) busy = true;
 
-    // scroll: the arch runs from the front wheels to past the tail as the camera glides down the flank
-    let archZ = THREE.MathUtils.lerp(ARCH_Z0, ARCH_Z1, ease(clamp01(shown / 0.85)));
-    if (introT >= 0 && !introDone) {
+    let line = lineAt(shown, LINE_INTRO);
+    if (introT >= 0) {
       introT += dt;
-      // arrival, from the same frame as the still: one pass of the arch, back to the tail, then in
-      // again over the nose to settle where it was; the lamps blink once on the way
+      // the turntable spins up from the still's pose and keeps turning; scrolling adds a little
+      const spin = Math.min(1, introT / SPIN_UP_S);
+      turn += TURN_SPEED * dt * spin * spin;
+      // arrival: the polish line moves over the door (a slow pass with the machine's to-and-fro)
       const k = clamp01(introT / INTRO_S);
-      archZ = k < 0.5 ? THREE.MathUtils.lerp(archZ, ARCH_Z1, ease(k / 0.5)) : THREE.MathUtils.lerp(ARCH_IN, archZ, easeOut((k - 0.5) / 0.5));
-      setLamps(k < 0.6 || k > 0.8 ? 1 : 0.25 + Math.abs(Math.sin((k - 0.6) * Math.PI * 10)) * 0.75);
-      if (k >= 1) {
-        introDone = true;
-        setLamps(1);
+      if (k < 1) {
+        const from = THREE.MathUtils.lerp(LINE_REST, LINE_INTRO, easeOut(k)) + Math.sin(k * Math.PI * 3) * 0.018 * (1 - k);
+        line = lineAt(shown, from);
       }
       busy = true;
-    }
-    setArch(archZ);
+    } else line = lineAt(shown, LINE_REST);
+    setLine(line);
+    setLights(pointer.x * 0.55);
     placeCamera(shown, "live");
     render();
     if (watch.on && watch.n > WARM_FRAMES) watch.cost += performance.now() - now0;
@@ -660,9 +710,9 @@ export async function createStudio(
     if (!raf && visible && !disposed) raf = requestAnimationFrame(step);
   }
 
-  // first frame: finished state (matches the still), lamps on
+  // first frame: the still's state (turntable at rest, line on the door), lamps on
   setLamps(1);
-  setArch(ARCH_Z0);
+  setLine(lineAt(progress, LINE_REST));
   size2D();
   placeCamera(shown, "live");
   await breathe();
@@ -719,11 +769,13 @@ export async function createStudio(
       introT = 0;
       request();
     },
-    still: (view) => {
+    still: (view, gloss = view === "phone") => {
       frame = view === "phone" ? PHONE_FRAME : DESKTOP_FRAME;
       pointer.x = pointer.y = pointer.tx = pointer.ty = 0;
+      turn = 0;
       setLamps(1);
-      setArch(ARCH_Z0);
+      setLights(0);
+      setLine(gloss ? LINE_END : LINE_REST);
       placeCamera(0, view);
       applyFrame(canvas.width, canvas.height);
       render();

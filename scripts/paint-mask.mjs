@@ -1,5 +1,5 @@
 // Renders the paint mask for the /v2 hero (src/components/home/PaintCheck.tsx) from the live 3D scene,
-// in exactly the framing of the desktop still (studio-car.jpg, DESKTOP_FRAME), so the 2D swirl light
+// in exactly the framing of the desktop still (studio-car-gloss.jpg, DESKTOP_FRAME), so the 2D swirl light
 // only ever lands on the car's paint:
 //   public/hero/paint-mask.webp   1200 x 750, white, alpha = paint × how squarely it faces the camera
 // Run again with car-stills.mjs whenever a pose, a frame or the model changes.
@@ -35,8 +35,8 @@ THREE.Scene.prototype.onBeforeRender = function (r, s, c, rt) { if (!rt && c && 
 window.mask = async (w, h) => {
   const cv = document.getElementById("c");
   cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w; cv.height = h;
-  const st = await createStudio(cv, { model: "/models/lustro-car.glb" });
-  st.resize(); st.still("desktop");
+  const st = await createStudio(cv, { model: "/models/lustro-930.glb" });
+  st.resize(); st.still("desktop", true);
   const { r, s, c } = last;
   // paint: white, fading where the panel turns away (the light can't sit on an edge); the rest black
   const paint = new THREE.ShaderMaterial({
@@ -48,7 +48,7 @@ window.mask = async (w, h) => {
   s.traverse((o) => {
     if (!o.isMesh) return;
     const m = o.material;
-    const isPaint = m && m.isMeshPhysicalMaterial && m.clearcoat === 1 && !m.transparent && (m.color.getHexString() === "0b0c0e" || m.color.getHexString() === "050506");
+    const isPaint = !!m?.userData?.paint;
     // the floor, shadows and the room never count
     o.material = isPaint ? paint : black;
   });

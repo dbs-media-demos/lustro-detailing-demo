@@ -30,7 +30,7 @@ export const sr: Record<string, string> = {
     "Detailing, poliranje i keramička zaštita. Jedan auto u jednom trenutku, pod pravim svetlom.",
 
   // ── Hero ──
-  "A gloss-black car under the lights of a dark detailing studio": "Sjajni crni automobil pod svetlima mračnog detailing studija",
+  "A gloss-black 1975 Porsche 911 Turbo under the lights of a dark detailing studio": "Sjajni crni Porsche 911 Turbo iz 1975. pod svetlima mračnog detailing studija",
   "Detail studio": "Detailing studio",
   "Like it just": "Kao da je tek",
   "left the showroom.": "izašao iz salona.",
