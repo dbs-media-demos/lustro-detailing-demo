@@ -78,6 +78,7 @@ function cpuFastEnough() {
 export function after3DGate(yes: () => void, no?: () => void) {
   let cancelled = false;
   let idle = 0;
+  let timer = 0;
   const run = () => {
     if (cancelled) return;
     if (can3D() && cpuFastEnough()) return yes();
@@ -86,14 +87,15 @@ export function after3DGate(yes: () => void, no?: () => void) {
   };
   const onLoad = () => {
     if (typeof window.requestIdleCallback === "function") idle = window.requestIdleCallback(run, { timeout: 600 });
-    else idle = window.setTimeout(run, 120);
+    else timer = window.setTimeout(run, 120);
   };
   if (document.readyState === "complete") onLoad();
   else window.addEventListener("load", onLoad, { once: true });
   return () => {
     cancelled = true;
     window.removeEventListener("load", onLoad);
-    if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idle);
-    window.clearTimeout(idle);
+    // each id with its own cancel: an idle-callback id passed to clearTimeout can kill an unrelated timer
+    if (idle) window.cancelIdleCallback(idle);
+    if (timer) window.clearTimeout(timer);
   };
 }
