@@ -21,6 +21,8 @@ function conceptBiz(lang: "en" | "sr"): Biz {
     hoursSummary: s.hoursSummary,
     rating: { ...site.rating },
     preview: false,
+    logo: null,
+    areas: [],
   };
 }
 

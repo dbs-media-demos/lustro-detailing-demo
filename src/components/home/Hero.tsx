@@ -13,6 +13,7 @@ import { num, telOf } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
 import { isPhone, prefersReducedMotion } from "@/lib/motion";
 import { after3DGate, mark3DOff } from "@/lib/three-gate";
+import { loaderShowing, whenLoaderDone } from "@/lib/loader";
 import type { Studio } from "@/components/fx/car3d/StudioScene";
 
 const MODEL = "/models/lustro-car.glb?v=1";
@@ -96,7 +97,12 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
           return;
         }
         const s = studio;
-        const intro = window.setTimeout(() => s.intro(), 900);
+        // the light arch passes once the lead's logo loader has gone (it may still be up)
+        let intro = 0;
+        const held = loaderShowing();
+        const unwait = whenLoaderDone(() => {
+          intro = window.setTimeout(() => s.intro(), held ? 250 : 900);
+        });
         let on = true;
         const onScroll = () => {
           // the stage drifts at a third of the page's speed, so the car stays a little longer
@@ -116,6 +122,7 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
         onScroll();
         stop3D = () => {
           on = false;
+          unwait();
           window.clearTimeout(intro);
           window.removeEventListener("pointermove", onPointer);
           window.removeEventListener("resize", onResize);
@@ -140,17 +147,28 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
     };
   }, [kind]);
 
-  // Phones: one crossfade from the detailer to the 3D car, only if the still lands in time.
+  // Phones: one crossfade from the detailer to the 3D car, only if the still lands in time
+  // (timed from the moment the lead's logo loader goes, when there is one).
+  const since = useRef(0);
   useEffect(() => {
     if (!isPhone() || prefersReducedMotion()) return;
+    let off = () => {};
+    const loaderShown = loaderShowing();
     const go = () => {
-      if (performance.now() < 2600) setXfade(true);
+      if (performance.now() - since.current < 2600) setXfade(true);
     };
-    if (document.readyState === "complete") go();
-    else {
-      window.addEventListener("load", go, { once: true });
-      return () => window.removeEventListener("load", go);
-    }
+    const unwait = whenLoaderDone(() => {
+      since.current = loaderShown ? performance.now() : 0;
+      if (document.readyState === "complete") go();
+      else {
+        window.addEventListener("load", go, { once: true });
+        off = () => window.removeEventListener("load", go);
+      }
+    });
+    return () => {
+      unwait();
+      off();
+    };
   }, []);
 
   const alt = t("A gloss-black car under the lights of a dark detailing studio");
@@ -195,7 +213,7 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
               alt=""
               decoding="async"
               className="hero-xfade absolute inset-0 h-full w-full object-cover object-[50%_42%]"
-              onLoad={(e) => e.currentTarget.currentSrc !== EMPTY && performance.now() < 3600 && e.currentTarget.classList.add("is-in")}
+              onLoad={(e) => e.currentTarget.currentSrc !== EMPTY && performance.now() - since.current < 3600 && e.currentTarget.classList.add("is-in")}
             />
           </picture>
         )}

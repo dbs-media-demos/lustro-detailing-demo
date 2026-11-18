@@ -4,6 +4,7 @@
  * have their own Serbian versions in content/offer.ts. Find gaps with window.__untranslated().
  */
 export const sr: Record<string, string> = {
+  "Cars come in from": "Mušterije dolaze iz mesta:",
   // ── Chrome ──
   "Skip to content": "Preskoči na sadržaj",
   home: "početna",

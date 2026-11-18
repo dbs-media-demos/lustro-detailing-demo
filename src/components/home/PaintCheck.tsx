@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { prefersReducedMotion } from "@/lib/motion";
+import { whenLoaderDone } from "@/lib/loader";
 
 /**
  * The /v2 hero's centrepiece on desktop, without any 3D: the swirl check every detailer does under a
@@ -80,6 +81,7 @@ export default function PaintCheck() {
     let visible = true;
     let ready = false;
     let t0 = 0;
+    let unwait = () => {};
     let last = 0;
     // layout: the still's cover crop, in CSS pixels of the stage
     let W = 0;
@@ -264,7 +266,7 @@ export default function PaintCheck() {
       raf = requestAnimationFrame(tick);
     };
     const start = () => {
-      if (!raf && visible && ready && !still) raf = requestAnimationFrame(tick);
+      if (!raf && visible && ready && !still && t0) raf = requestAnimationFrame(tick);
     };
 
     const onPointer = (e: PointerEvent) => {
@@ -322,8 +324,11 @@ export default function PaintCheck() {
           draw(0);
           return;
         }
-        t0 = performance.now();
-        start();
+        // the line starts its pass once the lead's logo loader has gone
+        unwait = whenLoaderDone(() => {
+          t0 = performance.now();
+          start();
+        });
       })
       .catch(() => {});
 
@@ -337,6 +342,7 @@ export default function PaintCheck() {
     }
     return () => {
       disposed = true;
+      unwait();
       if (raf) cancelAnimationFrame(raf);
       io.disconnect();
       window.removeEventListener("resize", onResize);

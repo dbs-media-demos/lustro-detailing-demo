@@ -2,7 +2,8 @@
 
 import { LogoMark } from "@/components/brand/Logo";
 import { useBiz } from "@/components/preview/BizContext";
-import { telOf } from "@/lib/biz-core";
+import { areasOf, telOf } from "@/lib/biz-core";
+import { inlineLogo } from "@/lib/logo";
 import { useT } from "@/lib/i18n";
 import { agencyName, agencyUrl, site } from "@/lib/site";
 import { NAV } from "./nav";
@@ -15,10 +16,16 @@ export function Footer() {
     <footer className="relative overflow-hidden border-t border-line bg-ink px-[var(--gutter)] pb-28 pt-20 md:pb-10 phone:pb-24 phone:pt-10">
       <div className="grid gap-12 md:grid-cols-12 phone:gap-7">
         <div className="md:col-span-5">
-          <p className="flex items-center gap-3" data-no-translate>
-            <LogoMark className="h-10 w-10 text-pearl" />
-            <span className="font-display text-2xl font-extrabold tracking-tight">{biz.name}</span>
-          </p>
+          {biz.logo ? (
+            <p className="flex" data-no-translate>
+              <span role="img" aria-label={biz.name} className="biz-logo h-12 max-w-[20rem] text-pearl phone:h-10" dangerouslySetInnerHTML={{ __html: inlineLogo(biz.logo.svg) }} />
+            </p>
+          ) : (
+            <p className="flex items-center gap-3" data-no-translate>
+              <LogoMark className="h-10 w-10 text-pearl" />
+              <span className="font-display text-2xl font-extrabold tracking-tight">{biz.name}</span>
+            </p>
+          )}
           <p className="mt-5 max-w-sm text-mist phone:mt-3 phone:text-sm">{t("Detailing, paint correction and ceramic coating. One car at a time, under proper light.")}</p>
         </div>
         <div className="grid grid-cols-2 gap-8 text-sm max-sm:grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-3 md:col-span-7">
@@ -32,6 +39,11 @@ export function Footer() {
             {biz.hoursSummary && (
               <p className="mt-2 text-mist" data-no-translate>
                 {biz.hoursSummary}
+              </p>
+            )}
+            {biz.preview && areasOf(biz).length > 0 && (
+              <p className="mt-4 text-mist">
+                {t("Cars come in from")} <span data-no-translate>{areasOf(biz).join(" · ")}</span>
               </p>
             )}
           </div>

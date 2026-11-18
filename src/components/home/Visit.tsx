@@ -6,7 +6,7 @@ import { OpenBadge } from "@/components/ui/OpenBadge";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { DriveThrough } from "./DriveThrough";
-import { DAY_NAMES, dayRange, telOf, weekFromMonday } from "@/lib/biz-core";
+import { DAY_NAMES, areasOf, dayRange, telOf, weekFromMonday } from "@/lib/biz-core";
 import { useT } from "@/lib/i18n";
 
 /** Address, live open badge, the week's hours and a map: the real one on previews, a drawn one on the concept. */
@@ -27,6 +27,18 @@ export function Visit() {
             <address className="mt-8 text-xl not-italic leading-snug phone:mt-3 phone:text-base" data-no-translate>
               {biz.address.full}
             </address>
+          )}
+          {biz.preview && areasOf(biz).length > 1 && (
+            <div className="mt-6 phone:mt-3">
+              <p className="t-label text-[0.66rem] text-mist">{t("Cars come in from")}</p>
+              <ul className="mt-3 flex flex-wrap gap-2 phone:mt-2 phone:gap-1.5" data-no-translate>
+                {areasOf(biz).map((a) => (
+                  <li key={a} className="rounded-full border border-line-strong px-3.5 py-1.5 text-sm phone:px-3 phone:py-1 phone:text-[0.8rem]">
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <OpenBadge className="mt-6 text-sm phone:mt-2 phone:flex phone:min-h-5 phone:text-[0.82rem]" />
           {biz.hours && (

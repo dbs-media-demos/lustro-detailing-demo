@@ -31,7 +31,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-US" className={`${Syne.variable} ${Manrope.variable} ${mono.variable}`}>
+    // suppressHydrationWarning: a lead's logo loader marks <html> (data-loader) before React hydrates
+    <html lang="en-US" className={`${Syne.variable} ${Manrope.variable} ${mono.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh">
         {children}
         <SmoothScroll />
