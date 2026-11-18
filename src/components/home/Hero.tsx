@@ -38,9 +38,9 @@ const EMPTY = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAI
  * so the reflections slide over the paint. Until then (and for anything that fails the gate:
  * tablets, reduced motion, Save-Data, no WebGL) a still rendered from the same scene sits in the
  * server HTML, framed identically, and the canvas fades in over it only once the scene is loaded,
- * its shaders compiled and one frame drawn. If the first two seconds run under about 45 fps (or one
- * frame takes over 100 ms), the canvas fades back to the still, the renderer is freed and the
- * rest of the visit stays on stills (lib/three-gate).
+ * its shaders compiled and one frame drawn. If the first two seconds run under about 45 fps (or a
+ * 3rd frame takes over 100 ms, or one over 400 ms), the canvas fades back to the still and the
+ * renderer is freed; two such page loads keep the rest of the visit on stills (lib/three-gate).
  *
  * Phones: zero bytes of three.js. A detailer at work on black paint, the service and town as the
  * headline, the rating and a Call button with the number on it. After load the photo crossfades
@@ -78,7 +78,7 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
         const progress = () => Math.min(1, Math.max(0, window.scrollY / Math.max(1, section.offsetHeight)));
         // too slow for this machine: back to the still (it never left), renderer freed after the fade
         const onSlow = () => {
-          mark3DOff();
+          mark3DOff("slow");
           setLive(false);
           stop3D();
           let s = studio;
@@ -129,7 +129,7 @@ export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
       } catch (e) {
         // no real graphics chip, no WebGL or no model after all: the still stays (for the visit,
         // unless it was only the model or the page going away)
-        if (!disposed && e instanceof Error && /WebGL|context/i.test(e.message)) mark3DOff();
+        if (!disposed && e instanceof Error && /WebGL|context/i.test(e.message)) mark3DOff("gpu");
       }
     });
     return () => {

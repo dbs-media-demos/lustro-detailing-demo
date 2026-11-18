@@ -55,12 +55,15 @@ const ARCH_IN = 4.6; // ahead of the nose
 const INTRO_S = 3.2;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-// the watch after the canvas appears: under 45 fps on average, one frame over 100 ms, or over 3 ms
-// of the scene's own work per frame, means a weak machine
+// the watch after the canvas appears: under 45 fps on average, a 3rd frame over 100 ms or one over
+// 400 ms, or over 3 ms of the scene's own work per frame, means a weak machine. The first frames
+// pay one-off costs (the GPU's first real draw: 371 ms on a refresh on a PC that then ran 112 fps,
+// 18 Nov) and don't count, and a hitch or two (a font, an image decode) isn't a slow machine.
 const WATCH_MS = 2000;
-const WARM_FRAMES = 3;
+const WARM_FRAMES = 5;
 const MIN_FPS = 45;
 const MAX_FRAME_MS = 100;
+const MAX_HITCHES = 3;
 const MAX_COST_MS = 3;
 const SOFTWARE_GL = /swiftshader|llvmpipe|softpipe|software|basic render|mesa offscreen/i;
 
@@ -520,7 +523,7 @@ export async function createStudio(
   let first = true;
   let disposed = false;
   // the frame watch: starts with the first visible frame, paused while off screen or hidden
-  const watch = { on: !!opts.onSlow, t0: 0, n: 0, worst: 0, cost: 0 };
+  const watch = { on: !!opts.onSlow, t0: 0, n: 0, worst: 0, cost: 0, hitches: 0 };
 
   const setArch = (z: number) => {
     archWorld[0].set(-ARCH_W, 0.25, z);
@@ -596,20 +599,21 @@ export async function createStudio(
       if (watch.n === WARM_FRAMES) watch.t0 = now;
       if (watch.n > WARM_FRAMES) {
         watch.worst = Math.max(watch.worst, ms);
+        if (ms > MAX_FRAME_MS) watch.hitches++;
         const span = now - watch.t0;
         const fps = ((watch.n - WARM_FRAMES) * 1000) / Math.max(1, span);
         // the scene's own main-thread time per frame: on a slow CPU it leaves the page no room,
         // even where the screen refresh hides it (about 1 ms on a desktop, 8 ms at 4x CPU slowdown)
         const cost = watch.cost / Math.max(1, watch.n - WARM_FRAMES - 1);
-        if (watch.worst > MAX_FRAME_MS || (span >= WATCH_MS && (fps < MIN_FPS || cost > MAX_COST_MS))) {
+        if (watch.hitches >= MAX_HITCHES || watch.worst > MAX_FRAME_MS * 4 || (span >= WATCH_MS && (fps < MIN_FPS || cost > MAX_COST_MS))) {
           watch.on = false;
-          performance.mark("3d:slow", { detail: { fps, cost, worst: watch.worst } });
+          performance.mark("3d:slow", { detail: { fps, cost, worst: watch.worst, hitches: watch.hitches } });
           opts.onSlow?.();
           return;
         }
         if (span >= WATCH_MS) {
           watch.on = false;
-          performance.mark("3d:watch-ok", { detail: { fps, cost, worst: watch.worst } });
+          performance.mark("3d:watch-ok", { detail: { fps, cost, worst: watch.worst, hitches: watch.hitches } });
         }
       }
     }
@@ -707,7 +711,7 @@ export async function createStudio(
         last = 0;
       }
       // a watch interrupted by scrolling away or switching tabs starts over when it comes back
-      if (watch.on) watch.n = watch.worst = watch.cost = 0;
+      if (watch.on) watch.n = watch.worst = watch.cost = watch.hitches = 0;
     },
     resize,
     intro: () => {

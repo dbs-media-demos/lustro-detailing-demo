@@ -7,22 +7,34 @@
  */
 export const DESKTOP_3D_QUERY = "(min-width: 1024px) and (hover: hover) and (pointer: fine)";
 const NO_3D = "lustro:no3d";
+const SLOW = "lustro:3d-slow";
+const SLOW_LIMIT = 2;
+
+// This page load ran slow: the scenes after it on this page stay stills too (counted once per load)
+let slowHere = false;
 
 /**
- * This machine couldn't keep a scene smooth (or has no real graphics chip): every 3D scene stays a
- * still for the rest of the visit, on every page and preview.
+ * `"gpu"`: no real graphics chip or no WebGL. Every 3D scene stays a still for the rest of the
+ * visit, on every page and preview. `"slow"`: this page load couldn't keep a scene smooth (or the
+ * CPU check failed). That only costs this page load; the visit goes to stills after 2 slow loads.
+ * On 18 Nov one slow start (the GPU's first draw on a refresh) kept a fast PC on the still for
+ * the whole tab.
  */
-export function mark3DOff() {
+export function mark3DOff(why: "gpu" | "slow") {
   try {
-    sessionStorage.setItem(NO_3D, "1");
+    if (why === "gpu") sessionStorage.setItem(NO_3D, "gpu");
+    else if (!slowHere) sessionStorage.setItem(SLOW, String(Number(sessionStorage.getItem(SLOW) || 0) + 1));
   } catch {
     // private mode without storage: this page still falls back, the next one tries again
   }
+  if (why === "slow") slowHere = true;
 }
 
 function is3DOff() {
+  if (slowHere) return true;
   try {
-    return sessionStorage.getItem(NO_3D) === "1";
+    // only "gpu" counts under the old key: a tab's old "1" (one slow start) doesn't hold any more
+    return sessionStorage.getItem(NO_3D) === "gpu" || Number(sessionStorage.getItem(SLOW) || 0) >= SLOW_LIMIT;
   } catch {
     return false;
   }
@@ -69,7 +81,7 @@ export function after3DGate(yes: () => void, no?: () => void) {
   const run = () => {
     if (cancelled) return;
     if (can3D() && cpuFastEnough()) return yes();
-    if (can3D()) mark3DOff(); // the CPU failed: the rest of the visit stays on stills
+    if (can3D()) mark3DOff("slow"); // the CPU failed: this load stays on the still (two such loads: the visit)
     no?.();
   };
   const onLoad = () => {
