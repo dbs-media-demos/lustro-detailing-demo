@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { Hero } from "./Hero";
+import { Hero, type HeroKind } from "./Hero";
 import { WashScene } from "./WashScene";
 import { Services } from "./Services";
 import { Packages } from "./Packages";
@@ -22,11 +22,14 @@ const WORDS = ["Hand wash", "Paint correction", "Ceramic coating", "Interior det
  * Phones read it in another order (each section's `phone:order-*`): prices by car size, reviews
  * and how it works come straight after the hero, because that's what a project buyer checks.
  * Everything below the hero waits there until it's near the screen (NearScreen).
+ *
+ * `hero` is the only switch between the two homepages: "3d" (/) or "2d" (/v2, no three.js). Every
+ * section below it is the same tree, so a change lands in both.
  */
-export function HomeContent() {
+export function HomeContent({ hero = "3d" }: { hero?: HeroKind }) {
   return (
     <>
-      <Hero />
+      <Hero kind={hero} />
       {/* hidden on phones, so there it never hydrates at all */}
       <NearScreen height={0}>
         <Ticker />

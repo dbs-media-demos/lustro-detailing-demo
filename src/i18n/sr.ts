@@ -38,6 +38,10 @@ export const sr: Record<string, string> = {
   "See prices": "Pogledajte cene",
   "{count} Google reviews": "{count} Google recenzija",
   "Gloss after": "Sjaj posle",
+  // /v2 hero: the swirl check under a torch
+  "After · corrected": "Posle · ispolirano",
+  "Before · swirl marks": "Pre · kružne ogrebotine",
+  "Move the light over the paint": "Pomerite svetlo preko laka",
   Coating: "Keramika",
   "5 years": "5 godina",
   "Cars a day": "Auta dnevno",

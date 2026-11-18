@@ -1,0 +1,21 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { HomeContent } from "@/components/home/HomeContent";
+import { previewBiz } from "@/lib/preview";
+import { previewMetadata } from "@/lib/preview-meta";
+
+// Always the CRM's current data: an edit there shows on the next reload
+export const dynamic = "force-dynamic";
+
+type Props = { params: Promise<{ token: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  return previewMetadata((await params).token);
+}
+
+/** The same preview without the 3D hero (the lead's business, the 2D swirl-check hero). */
+export default async function PreviewPageV2({ params }: Props) {
+  const biz = await previewBiz((await params).token);
+  if (!biz) notFound();
+  return <HomeContent hero="2d" />;
+}

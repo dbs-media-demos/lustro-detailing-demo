@@ -1,7 +1,7 @@
 "use client";
 
 import { getImageProps } from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
 import studioCar from "@/assets/photos/studio-car.jpg";
 import studioCarPhone from "@/assets/photos/studio-car-phone.jpg";
@@ -16,6 +16,19 @@ import { after3DGate, mark3DOff } from "@/lib/three-gate";
 import type { Studio } from "@/components/fx/car3d/StudioScene";
 
 const MODEL = "/models/lustro-car.glb?v=1";
+// /v2's centrepiece (canvas 2D, no three.js): fetched only on a desktop showing that hero
+const PaintCheck = lazy(() => import("./PaintCheck"));
+
+/** `3d`: the live studio (/). `2d`: the same hero with the 2D swirl check instead (/v2), never a byte of three.js. */
+export type HeroKind = "3d" | "2d";
+// where the wide still shows (a mouse and room for it): that's where /v2 draws over it
+const WIDE = "(min-width: 768px) and (hover: hover)";
+const onWide = (on: () => void) => {
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", on);
+  return () => mq.removeEventListener("change", on);
+};
+const isWide = () => window.matchMedia(WIDE).matches;
 const EMPTY = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 /**
@@ -35,7 +48,7 @@ const EMPTY = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAI
  *
  * The headline, text and buttons are never animated in, on any screen.
  */
-export function Hero() {
+export function Hero({ kind = "3d" }: { kind?: HeroKind }) {
   const biz = useBiz();
   const t = useT();
   const sectionRef = useRef<HTMLElement>(null);
@@ -43,13 +56,15 @@ export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [live, setLive] = useState(false);
   const [xfade, setXfade] = useState(false);
+  // false on the server and during hydration, so the server HTML is the same on every screen
+  const paint = useSyncExternalStore(onWide, isWide, () => false) && kind === "2d";
 
   // The 3D studio: only after load, only past the gate, three.js fetched inside the callback.
   useEffect(() => {
     const section = sectionRef.current;
     const stage = stageRef.current;
     const canvas = canvasRef.current;
-    if (!section || !stage || !canvas) return;
+    if (kind !== "3d" || !section || !stage || !canvas) return;
     let studio: Studio | null = null;
     let disposed = false;
     let stop3D = () => {};
@@ -123,7 +138,7 @@ export function Hero() {
       off.forEach((f) => f());
       studio?.dispose();
     };
-  }, []);
+  }, [kind]);
 
   // Phones: one crossfade from the detailer to the 3D car, only if the still lands in time.
   useEffect(() => {
@@ -184,10 +199,18 @@ export function Hero() {
             />
           </picture>
         )}
-        <canvas ref={canvasRef} aria-hidden className={`absolute inset-0 h-full w-full transition-opacity duration-700 phone:hidden ${live ? "opacity-100" : "opacity-0"}`} />
+        {kind === "3d" ? (
+          <canvas ref={canvasRef} aria-hidden className={`absolute inset-0 h-full w-full transition-opacity duration-700 phone:hidden ${live ? "opacity-100" : "opacity-0"}`} />
+        ) : (
+          paint && (
+            <Suspense fallback={null}>
+              <PaintCheck />
+            </Suspense>
+          )
+        )}
       </div>
       {/* the light band sweeping over the still, until the live scene takes over */}
-      <div aria-hidden className={`hero-sweep absolute inset-0 -z-10 transition-opacity duration-700 phone:hidden ${live ? "opacity-0" : ""}`} />
+      {kind === "3d" && <div aria-hidden className={`hero-sweep absolute inset-0 -z-10 transition-opacity duration-700 phone:hidden ${live ? "opacity-0" : ""}`} />}
       <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(7,8,10,0.92)_0%,rgba(7,8,10,0.7)_30%,rgba(7,8,10,0)_52%),linear-gradient(0deg,rgba(7,8,10,0.9)_0%,rgba(7,8,10,0)_34%)] phone:bottom-auto phone:h-[var(--hero-photo)] phone:bg-[linear-gradient(180deg,rgba(7,8,10,0.6)_0%,rgba(7,8,10,0.05)_30%,rgba(7,8,10,0.1)_55%,rgba(7,8,10,1)_100%)]" />
 
       <div className="max-w-[80rem] phone:flex phone:flex-col">

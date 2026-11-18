@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { Logo } from "@/components/brand/Logo";
 import { useBiz } from "@/components/preview/BizContext";
@@ -15,7 +16,11 @@ export function Header() {
   const t = useT();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const home = biz.preview ? "#top" : biz.lang === "sr" ? "/sr" : "/";
+  // /v2 (the homepage without 3D) keeps its language switch and logo on /v2
+  const v2 = usePathname()?.endsWith("/v2") ? "/v2" : "";
+  const en = v2 || "/";
+  const srHref = `/sr${v2}`;
+  const home = biz.preview ? "#top" : biz.lang === "sr" ? srHref : en;
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 40);
@@ -62,10 +67,10 @@ export function Header() {
         <div className="relative z-10 flex shrink-0 items-center gap-2 sm:gap-3">
           {!biz.preview && (
             <div className="t-label hidden items-center rounded-full border border-line p-1 text-[0.65rem] sm:flex" role="group" aria-label={t("Language")}>
-              <Link href="/" hrefLang="en" aria-current={biz.lang === "en" ? "true" : undefined} className={clsx("rounded-full px-2.5 py-1.5", biz.lang === "en" ? "bg-pearl text-ink" : "text-mist hover:text-pearl")}>
+              <Link href={en} hrefLang="en" aria-current={biz.lang === "en" ? "true" : undefined} className={clsx("rounded-full px-2.5 py-1.5", biz.lang === "en" ? "bg-pearl text-ink" : "text-mist hover:text-pearl")}>
                 EN
               </Link>
-              <Link href="/sr" hrefLang="sr" aria-current={biz.lang === "sr" ? "true" : undefined} className={clsx("rounded-full px-2.5 py-1.5", biz.lang === "sr" ? "bg-pearl text-ink" : "text-mist hover:text-pearl")}>
+              <Link href={srHref} hrefLang="sr" aria-current={biz.lang === "sr" ? "true" : undefined} className={clsx("rounded-full px-2.5 py-1.5", biz.lang === "sr" ? "bg-pearl text-ink" : "text-mist hover:text-pearl")}>
                 SR
               </Link>
             </div>
@@ -116,10 +121,10 @@ export function Header() {
         </div>
         {!biz.preview && (
           <p className="t-label mt-10 flex gap-6 text-mist">
-            <Link href="/" hrefLang="en" className={biz.lang === "en" ? "text-pearl" : ""}>
+            <Link href={en} hrefLang="en" className={biz.lang === "en" ? "text-pearl" : ""}>
               English
             </Link>
-            <Link href="/sr" hrefLang="sr" className={biz.lang === "sr" ? "text-pearl" : ""}>
+            <Link href={srHref} hrefLang="sr" className={biz.lang === "sr" ? "text-pearl" : ""}>
               Srpski
             </Link>
           </p>

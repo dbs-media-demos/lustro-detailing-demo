@@ -10,7 +10,7 @@
 - Stack: Next.js 16.3.6, React 19.2.8, Tailwind v4, GSAP (helpers), Lenis, three.js 0.187 (desktop hero only)
 - Palette: #07080A ink · #0E1013 carbon · #171A1F steel · #9AA2AB mist · #EEF0F2 pearl · #D4FA4C volt (the one loud colour)
 - Fonts: Syne 700/800 (display), Manrope (body), both one local variable subset file with Latin + Latin Extended-A (`src/assets/fonts`, cut from the Google Fonts sources with fonttools); IBM Plex Mono (labels, above phone width only)
-- Routes: `/` (EN), `/sr` (SR), `/for/<token>` (CRM previews, EN or SR by the lead), 404, robots, sitemap, manifest, OG image
+- Routes: `/` (EN), `/sr` (SR), `/for/<token>` (CRM previews, EN or SR by the lead), the same three without 3D at `/v2`, `/sr/v2`, `/for/<token>/v2`, 404, robots, sitemap, manifest, OG image
 
 ## Sections
 1. **Hero** (3D, desktop): a real-time gloss-black car in a dark detail studio (three.js). On arrival an inspection light arch passes over the car once and the lamps blink; scrolling runs the arch from the front wheels to past the tail while the camera glides down the flank, and the cursor leans the camera so the reflections slide over the paint. Live open badge, rating, Book + the phone number.
@@ -45,6 +45,12 @@
 - Model: "Car Concept", Khronos glTF Sample Assets, CC BY 4.0 (after "Free Concept Car 004" by Unity Fan, CC0): a made-up car, no carmaker's design or badge. Khronos/3D Commerce logos and the plate removed (the licence excludes them). `scripts/car-model.mjs` strips, simplifies (body panels untouched) and meshopt-compresses it: 11.8 MB → `public/models/lustro-car.glb` 1.1 MB, about 0.77 MB gzipped, cached for a year (`?v=1` in Hero.tsx: bump it when the file changes). The footer carries the CC BY credit line.
 - No second 3D section: the ceramic rain test is already the hands-on scene for coating and the wash is the pinned one; a second WebGL scene would add weight, not an idea.
 - The hero heading, text and buttons are never animated in (only the stats row fades). Short laptop screens (≤ 820 px tall, `short:` variant) get tighter hero spacing so the concept pill never covers the rating.
+
+## /v2: the homepage without 3D (owner, 18 Nov 2026)
+- `/v2`, `/sr/v2` and `/for/<token>/v2` are the same page as `/`, `/sr` and `/for/<token>`: one component tree, `HomeContent hero="2d"` is the only switch (Hero's `kind`). Same words, photos and sections; on phones it is identical to `/`. The /v2 concept pages are `noindex` with the canonical on `/` and `/sr`; the header's EN/SR switch stays on /v2.
+- Hero centrepiece (desktop, canvas 2D, `components/home/PaintCheck.tsx`, lazy-loaded only where the wide still shows): the swirl check a detailer does with a handheld LED torch, over the same still of the car. Behind a volt tape line the torch's reflection is hazy and ringed by swirl marks (fine concentric scratches, a few holograms, shimmering as it moves); in front of it the paint is corrected and the torch is a crisp clean point. On arrival the torch slides from the rear door forward while the line runs from the nose to mid-door, so the swirls vanish as it crosses (all within 3 s). Then it drifts back and forth over the line, follows the mouse near the car, and scrolling finishes the correction to the tail. "After · corrected" / "Before · swirl marks" ride the line. Reduced motion: one frame with the torch on the line.
+- The light only lands on paint: `public/hero/paint-mask.webp` (10 KB, alpha = paint × how squarely it faces the camera) is rendered from the 3D scene in the still's exact frame by `scripts/paint-mask.mjs`, and cropped in JS like the still's `object-fit: cover` (60%, or 82% below 3:2). Re-run it together with `car-stills.mjs`.
+- Zero three.js on /v2 at every width (the 3D gate never runs there; checked on the production build: 0 bytes of the three chunk or the model on `/v2`, `/for/<token>/v2`, EN and SR). Draws only while the hero is on screen and the tab visible; 60 fps at 4x CPU slowdown.
 
 ## Phones (owner's decision, 7 Nov 2026)
 Phone mode = below 768 px or any touch screen: Tailwind's `phone:` variant (`globals.css`) and `isPhone()` (`lib/motion.ts`) are the same test. At 1024 px and up nothing changed.
